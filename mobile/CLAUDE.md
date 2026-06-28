@@ -1,172 +1,203 @@
 # Mobile — Expo + React Native
 
-## Setup
-```bash
-npx create-expo-app mobile --template blank-typescript
-cd mobile
-npx expo install expo-notifications expo-secure-store
-npm install @supabase/supabase-js axios react-native-paper
-npm install @react-navigation/native @react-navigation/bottom-tabs
-npx expo install react-native-screens react-native-safe-area-context
-```
+## Stack
+- **Expo SDK 53** — React Native, Expo Router (file-based routing)
+- **Supabase JS** — auth only (JWT token → sent to FastAPI)
+- **EAS Build** — cloud APK builds for local distribution
+- Android primary; dark theme throughout
 
-## Structure
+## Project Structure
 ```
 mobile/
+├── app.json              ← Expo config (icon, splash, scheme, plugins, EAS projectId)
+├── eas.json              ← EAS Build profiles (preview = APK, production = AAB)
+├── .env                  ← EXPO_PUBLIC_* vars (never commit secrets)
+├── assets/
+│   ├── icon.png          ← 1024×1024 launcher icon (indigo-violet gradient + neural net)
+│   ├── adaptive-icon.png ← Android adaptive icon foreground
+│   └── splash.png        ← splash screen (dark bg, centered icon)
 ├── app/
+│   ├── _layout.tsx       ← root layout: AuthGuard + push notification setup
+│   ├── login.tsx         ← sign-in / sign-up screen
 │   ├── (tabs)/
-│   │   ├── index.tsx        # Today screen
-│   │   ├── paths.tsx        # My Learning Paths
-│   │   ├── import.tsx       # Import from chat
-│   │   └── log.tsx          # Quick log
-│   └── _layout.tsx
+│   │   ├── _layout.tsx   ← tab bar config (Today, Paths, Import, Log)
+│   │   ├── index.tsx     ← Today screen (daily plan)
+│   │   ├── paths.tsx     ← My Learning Paths list
+│   │   ├── import.tsx    ← Parse + editable preview + approve
+│   │   └── log.tsx       ← Quick log screen
+│   └── path/
+│       └── [id].tsx      ← Path detail (tracks, tasks, progress)
 ├── components/
-│   ├── TaskCard.tsx         # single task in daily plan
-│   ├── PathCard.tsx         # learning path summary card
-│   ├── ProgressRing.tsx     # circular progress indicator
-│   └── MoodPicker.tsx       # 3-emoji mood selector
+│   ├── TaskCard.tsx       ← single task in daily plan (done/skip actions)
+│   ├── PathCard.tsx       ← path summary card (press → detail, long-press → options)
+│   ├── ProgressRing.tsx   ← circular progress indicator (SVG-based)
+│   ├── MoodPicker.tsx     ← 3-emoji mood selector
+│   └── WeeklyReviewCard.tsx ← weekly review summary display
 ├── lib/
-│   ├── api.ts               # all FastAPI calls
-│   ├── auth.ts              # Supabase auth helpers
-│   └── notifications.ts     # Expo push setup
+│   ├── api.ts            ← all FastAPI calls + TypeScript types
+│   ├── auth.ts           ← Supabase auth helpers (SecureStore adapter)
+│   └── notifications.ts  ← Expo push setup (no-op guard in Expo Go)
 ├── hooks/
-│   ├── useTodayPlan.ts
-│   ├── usePaths.ts
-│   └── useAuth.ts
+│   ├── useAuth.ts        ← session state + sign-in/sign-up/sign-out
+│   ├── useTodayPlan.ts   ← today plan state + markDone/skipTask
+│   └── usePaths.ts       ← paths list + updatePriority/updateStatus/deletePath
 └── constants/
-    └── colors.ts
-```
-
-## API Client (lib/api.ts)
-```typescript
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL  // Render URL
-
-async function apiCall(endpoint: string, method = 'GET', body?: object) {
-  const token = await getSupabaseToken()
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: body ? JSON.stringify(body) : undefined
-  })
-  return res.json()
-}
-
-export const api = {
-  getTodayPlan: () => apiCall('/api/plan/today'),
-  markDone: (id: string) => apiCall(`/api/plan/item/${id}/done`, 'POST'),
-  skipTask: (id: string) => apiCall(`/api/plan/item/${id}/skip`, 'POST'),
-  parsePlan: (text: string) => apiCall('/api/schedule/parse', 'POST', { raw_text: text }),
-  savePlan: (schedule: object, priority: number) =>
-    apiCall('/api/schedule/save', 'POST', { approved_schedule: schedule, priority }),
-  getPaths: () => apiCall('/api/paths'),
-  updatePriority: (id: string, priority: number) =>
-    apiCall(`/api/paths/${id}/priority`, 'PUT', { priority }),
-  logTask: (data: object) => apiCall('/api/log', 'POST', data),
-  getWeeklySummary: () => apiCall('/api/log/weekly'),
-}
+    └── colors.ts         ← design tokens
 ```
 
 ## Screens
 
-### 1. Today Screen (tabs/index.tsx)
-```
-State: todayPlan (from GET /api/plan/today)
+### _layout.tsx (Root)
+- `AuthGuard` component handles redirect: no session → `/login`, session → `/`
+- Calls `setupPushNotifications()` once per session (no-op in Expo Go)
+- Registers notification tap listener (navigates to Today tab)
 
-UI:
-- Header: "Good morning! X tasks today"
-- Greeting from agent (motivational line)
-- FlatList of TaskCard components
-  - 🔄 badge if is_rollover
-  - path color indicator
-  - estimated time
-  - [Done] [Skip] buttons
-- Bottom: completion progress bar
+### login.tsx
+- Email + password sign-in and sign-up
+- `signUp` passes `emailRedirectTo: 'learning-agent://login'` for deep-link confirmation
+
+### (tabs)/index.tsx — Today
+- Loads `useTodayPlan` → `GET /api/plan/today`
+- Auto-generates plan if none exists for today (backend handles it)
+- FlatList of `TaskCard` — Done / Skip buttons
+- Progress bar: done/total tasks
+
+### (tabs)/paths.tsx — My Learning Paths
+- FlatList of `PathCard`
+- Tap → `router.push('/path/{id}')` → detail screen
+- Long-press → Alert with: Pause/Resume, Mark Complete, Delete (double-confirm)
+- FAB → Import tab
+
+### (tabs)/import.tsx — Import
+- Paste raw learning plan text → `POST /api/schedule/parse`
+- Editable preview: path title, track titles/days, task titles/descriptions/hours
+- Add/delete tracks and tasks
+- Start date picker (native `DateTimePicker` on Android)
+- Priority selector (1–5)
+- Approve → `POST /api/schedule/save`
+- Rate limit: backend returns 429 after 5 parses/hour; shown as error message
+
+### (tabs)/log.tsx — Quick Log
+- Select task from dropdown, enter time + notes + mood
+- `POST /api/log`
+
+### path/[id].tsx — Path Detail
+- `GET /api/paths/{id}` → path + tracks + tasks (nested Supabase join)
+- Header: title, priority, status, completion %
+- Tracks expand to show task rows; tap task to expand description
+- Back button + Android hardware back → `router.replace('/(tabs)/paths')`
+  (uses `BackHandler` to intercept the Android gesture/hardware back)
+
+## API Client (lib/api.ts)
+
+All calls go through `apiCall()` which attaches the Supabase JWT:
+
+```typescript
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL  // e.g. https://learning-agent-api.onrender.com
+
+async function apiCall<T>(endpoint: string, method = 'GET', body?: object): Promise<T>
 ```
 
-### 2. My Paths Screen (tabs/paths.tsx)
-```
-State: paths (from GET /api/paths)
-
-UI:
-- FlatList of PathCard
-  - title, priority badge
-  - ProgressRing (completion %)
-  - status color: green/yellow/red
-  - pace label: "On track" / "2 days behind"
-- Long press → reorder priority
-- Tap → path detail (tracks + tasks list)
-- FAB: + Import New Path
+Error handling unpacks FastAPI validation errors (detail can be string or array):
+```typescript
+const detail = (err as any).detail
+const message = !detail ? `API error ${res.status}`
+  : typeof detail === 'string' ? detail
+  : Array.isArray(detail) ? detail.map((d: any) => d.msg ?? JSON.stringify(d)).join(', ')
+  : JSON.stringify(detail)
 ```
 
-### 3. Import Screen (tabs/import.tsx)
-```
-State: rawText, parsedPreview, priority, isLoading
+### Full endpoint list
+```typescript
+export const api = {
+  // Plan
+  getTodayPlan:    ()                             → TodayPlan
+  generatePlan:    ()                             → POST /api/plan/generate
+  markDone:        (id)                           → POST /api/plan/item/{id}/done
+  skipTask:        (id)                           → POST /api/plan/item/{id}/skip
 
-Flow:
-1. TextInput (multiline, paste chat here)
-2. [✨ Parse with AI] button → POST /api/schedule/parse
-3. Loading spinner during parse
-4. Preview list of extracted tracks (editable)
-   - each track: title, days, subtopics count
-   - [Edit] [Remove] per track
-5. Priority selector (1-5 slider)
-6. [✅ Approve & Save] → POST /api/schedule/save
-7. Success → navigate to Paths screen
+  // Schedule import
+  parsePlan:       (text)                         → SchedulePreview
+  savePlan:        (schedule, priority, startDate?) → POST /api/schedule/save
+
+  // Paths
+  getPaths:        ()                             → LearningPath[]
+  getPath:         (id)                           → PathDetail (with tracks + tasks)
+  updatePriority:  (id, priority)                 → PUT /api/paths/{id}/priority
+  updateStatus:    (id, status)                   → PUT /api/paths/{id}/status
+  deletePath:      (id)                           → DELETE /api/paths/{id}
+
+  // Log
+  logTask:         (data)                         → POST /api/log
+  getWeeklySummary: ()                            → GET /api/log/weekly
+
+  // User
+  savePushToken:   (token)                        → POST /api/user/push-token
+
+  // Weekly review
+  getWeeklyReview:  ()                            → WeeklyReview | null
+  triggerReview:    ()                            → POST /api/review/generate
+}
 ```
 
-### 4. Quick Log Screen (tabs/log.tsx)
-```
-State: selectedTask, notes, mood, timeSpent
+## Auth (lib/auth.ts)
+- Supabase JS client with `SecureStore` adapter (tokens stored in device keychain)
+- `detectSessionInUrl: false` (React Native has no URL bar)
+- `getSupabaseToken()` → returns JWT for Authorization header
 
-UI:
-- Dropdown: select completed task (from today's plan)
-- TextInput: notes (optional)
-- MoodPicker: 😊 😐 😴
-- TimeSpent: number input (minutes)
-- [Log It] button → POST /api/log
+## Push Notifications (lib/notifications.ts)
+```typescript
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient'
+
+export async function setupPushNotifications(): Promise<void> {
+  if (IS_EXPO_GO) return   // ← Expo Go removed remote push in SDK 53; guard prevents crash
+  // ... register + send token to POST /api/user/push-token
+}
 ```
 
 ## Colors (constants/colors.ts)
 ```typescript
 export const colors = {
-  primary: '#6366F1',      // indigo
-  success: '#22C55E',      // green - on track
-  warning: '#F59E0B',      // yellow - slight delay
-  danger: '#EF4444',       // red - behind
-  rollover: '#8B5CF6',     // purple - rolled over task
-  bg: '#0F172A',           // dark background
-  card: '#1E293B',         // card background
-  text: '#F1F5F9',         // primary text
-  muted: '#64748B',        // secondary text
+  primary:  '#6366F1',   // indigo
+  success:  '#22C55E',   // green  — on track
+  warning:  '#F59E0B',   // yellow — slight delay
+  danger:   '#EF4444',   // red    — behind
+  rollover: '#8B5CF6',   // purple — rolled-over task
+  bg:       '#0F172A',   // dark background
+  card:     '#1E293B',   // card background
+  text:     '#F1F5F9',   // primary text
+  muted:    '#64748B',   // secondary text
 }
 ```
 
-## Push Notifications (lib/notifications.ts)
-```typescript
-// Call on app first launch
-async function registerForPushNotifications() {
-  const { status } = await Notifications.requestPermissionsAsync()
-  if (status !== 'granted') return
-  const token = await Notifications.getExpoPushTokenAsync()
-  // send token to backend → POST /api/user/push-token
-  return token.data
+## EAS Build (local distribution)
+```json
+// eas.json
+{
+  "build": {
+    "preview":    { "distribution": "internal", "android": { "buildType": "apk" } },
+    "production": { "android": { "buildType": "app-bundle" } }
+  }
 }
 ```
 
-## Environment
+Build command:
+```bash
+eas build --profile preview --platform android --non-interactive --no-wait
 ```
-# mobile/.env
-EXPO_PUBLIC_API_URL=https://your-app.onrender.com
-EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
+Download the APK from the Expo dashboard link and install directly on Android.
+
+## Environment (.env)
+```
+EXPO_PUBLIC_API_URL=https://learning-agent-api.onrender.com
+EXPO_PUBLIC_SUPABASE_URL=https://...supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
 ## Rules
-- Never call Groq or Supabase directly from mobile
-- All data goes through FastAPI backend
-- Store auth token in expo-secure-store (not AsyncStorage)
-- Use optimistic UI for mark-done (update state before API confirms)
-- Handle offline gracefully — queue logs locally if no network
+- Never call Groq or Supabase DB directly from mobile — all data via FastAPI
+- Auth token stored in `expo-secure-store`, never in AsyncStorage
+- Optimistic UI for mark-done (update state before API confirms, revert on error)
+- Handle 429 rate limit errors and display the retry countdown message from the backend
+- `BackHandler` must be used on any screen navigated to via `router.push` (non-tab) to
+  control where Android hardware back lands
