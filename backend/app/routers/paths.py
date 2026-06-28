@@ -73,10 +73,11 @@ async def update_status(
 async def delete_path(path_id: str, user_id: str = Depends(get_user_id)):
     _assert_owns_path(path_id, user_id)
     sb = get_supabase()
-    # Remove referencing rows first to avoid FK constraint violations
+    # Must delete in FK dependency order.
+    # learning_tasks.path_id has no CASCADE so tasks must go first.
     sb.table("daily_plan_items").delete().eq("path_id", path_id).execute()
     sb.table("daily_logs").delete().eq("path_id", path_id).execute()
-    # Delete path — cascades to learning_tracks → learning_tasks
+    sb.table("learning_tasks").delete().eq("path_id", path_id).execute()
     sb.table("learning_paths").delete().eq("id", path_id).execute()
     return {"path_id": path_id, "deleted": True}
 
