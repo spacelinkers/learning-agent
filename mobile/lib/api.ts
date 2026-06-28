@@ -108,6 +108,82 @@ export interface LogData {
   mood?: 'good' | 'okay' | 'tired'
 }
 
+// ── Content Library types ─────────────────────────────────────────────────────
+
+export interface CodeExample {
+  title: string
+  language: string
+  code: string
+  explanation: string
+}
+
+export interface Project {
+  title: string
+  description: string
+  tech_stack: string[]
+  difficulty: 'easy' | 'medium' | 'hard'
+}
+
+export interface NextRead {
+  title: string
+  type: 'book' | 'article' | 'concept' | 'video'
+  reason: string
+  url?: string
+}
+
+export interface InterviewQuestion {
+  q: string
+  a: string
+}
+
+export interface Flashcard {
+  q: string
+  a: string
+}
+
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  correct: number
+  explanation: string
+}
+
+export interface ContentAnalysis {
+  id: string
+  source_id: string
+  takeaways: string[]
+  code: {
+    simple: CodeExample
+    intermediate: CodeExample
+    production: CodeExample
+  }
+  projects: Project[]
+  next_reads: NextRead[]
+  interview_questions: {
+    junior: InterviewQuestion[]
+    mid: InterviewQuestion[]
+    senior: InterviewQuestion[]
+  }
+  flashcards: Flashcard[]
+  quiz: QuizQuestion[]
+  completed_topics: string[]
+  created_at: string
+}
+
+export interface ContentSource {
+  id: string
+  type: 'url' | 'pdf'
+  url?: string
+  filename?: string
+  title?: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  reading_time_minutes?: number
+  prerequisites?: string[]
+  status: 'analyzing' | 'done' | 'failed'
+  created_at: string
+  analysis?: ContentAnalysis
+}
+
 // ── Client ────────────────────────────────────────────────────────────────────
 
 async function apiCall<T = unknown>(
@@ -123,6 +199,28 @@ async function apiCall<T = unknown>(
       Authorization: `Bearer ${token}`,
     },
     body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    const detail = (err as any).detail
+    const message = !detail
+      ? `API error ${res.status}`
+      : typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: any) => d.msg ?? JSON.stringify(d)).join(', ')
+          : JSON.stringify(detail)
+    throw new Error(message)
+  }
+  return res.json() as T
+}
+
+async function apiCallForm<T = unknown>(endpoint: string, formData: FormData): Promise<T> {
+  const token = await getSupabaseToken()
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -173,4 +271,13 @@ export const api = {
   // Weekly review
   getWeeklyReview:  ()                          => apiCall<WeeklyReview | null>('/api/review/weekly'),
   triggerReview:    ()                          => apiCall('/api/review/generate', 'POST'),
+
+  // Content library
+  ingestUrl:        (url: string)               => apiCall<{ source_id: string; status: string }>('/api/ingest/url', 'POST', { url }),
+  ingestPdf:        (formData: FormData)        => apiCallForm<{ source_id: string; status: string }>('/api/ingest/pdf', formData),
+  getSources:       ()                          => apiCall<ContentSource[]>('/api/ingest/sources'),
+  getSource:        (id: string)                => apiCall<ContentSource>(`/api/ingest/source/${id}`),
+  updateProgress:   (id: string, topics: string[]) =>
+    apiCall(`/api/ingest/source/${id}/progress`, 'PATCH', { completed_topics: topics }),
+  deleteSource:     (id: string)                => apiCall(`/api/ingest/source/${id}`, 'DELETE'),
 }

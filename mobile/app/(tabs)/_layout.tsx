@@ -37,6 +37,10 @@ export default function TabLayout() {
         name="log"
         options={{ title: 'Log', tabBarIcon: ({ focused }) => icon('pencil', focused) }}
       />
+      <Tabs.Screen
+        name="library"
+        options={{ title: 'Library', tabBarIcon: ({ focused }) => icon('book', focused) }}
+      />
     </Tabs>
   )
 }

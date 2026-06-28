@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent.scheduler import scheduler
-from app.routers import log, paths, plan, review, schedule, user
+from app.routers import ingest, log, paths, plan, review, schedule, user
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ app.include_router(plan.router)
 app.include_router(log.router)
 app.include_router(user.router)
 app.include_router(review.router)
+app.include_router(ingest.router)
 
 
 @app.get("/health")

@@ -321,6 +321,139 @@ def call_groq(prompt: str) -> dict:
     return json.loads(text)
 
 
+# ── Content library helpers ───────────────────────────────────────────────────
+
+def create_content_source(
+    user_id: str,
+    content_type: str,
+    url: str | None = None,
+    filename: str | None = None,
+) -> str:
+    """Insert a new content_sources row with status='analyzing'. Returns source_id."""
+    res = (
+        get_supabase()
+        .table("content_sources")
+        .insert({
+            "user_id": user_id,
+            "type": content_type,
+            "url": url,
+            "filename": filename,
+            "status": "analyzing",
+        })
+        .execute()
+    )
+    return res.data[0]["id"]
+
+
+def update_source_status(
+    source_id: str,
+    status: str,
+    title: str | None = None,
+    difficulty: str | None = None,
+    reading_time: int | None = None,
+    prerequisites: list | None = None,
+    error_msg: str | None = None,
+) -> None:
+    payload: dict = {"status": status}
+    if title:
+        payload["title"] = title
+    if difficulty:
+        payload["difficulty"] = difficulty
+    if reading_time is not None:
+        payload["reading_time_minutes"] = reading_time
+    if prerequisites is not None:
+        payload["prerequisites"] = prerequisites
+    if error_msg:
+        payload["error_msg"] = error_msg
+    get_supabase().table("content_sources").update(payload).eq("id", source_id).execute()
+
+
+def save_content_analysis(source_id: str, user_id: str, analysis: dict) -> str:
+    """Insert a content_analyses row. Returns analysis_id."""
+    res = (
+        get_supabase()
+        .table("content_analyses")
+        .insert({
+            "source_id": source_id,
+            "user_id": user_id,
+            "takeaways": analysis.get("takeaways", []),
+            "code": analysis.get("code", {}),
+            "projects": analysis.get("projects", []),
+            "next_reads": analysis.get("next_reads", []),
+            "interview_questions": analysis.get("interview_questions", {}),
+            "flashcards": analysis.get("flashcards", []),
+            "quiz": analysis.get("quiz", []),
+            "completed_topics": [],
+            "raw_llm": analysis,
+        })
+        .execute()
+    )
+    return res.data[0]["id"]
+
+
+def get_content_sources(user_id: str) -> list[dict]:
+    res = (
+        get_supabase()
+        .table("content_sources")
+        .select("id, type, url, filename, title, difficulty, reading_time_minutes, prerequisites, status, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return res.data or []
+
+
+def get_content_source_with_analysis(source_id: str, user_id: str) -> dict | None:
+    sb = get_supabase()
+    src_res = (
+        sb.table("content_sources")
+        .select("*")
+        .eq("id", source_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not src_res.data:
+        return None
+    source = src_res.data[0]
+
+    analysis_res = (
+        sb.table("content_analyses")
+        .select("*")
+        .eq("source_id", source_id)
+        .execute()
+    )
+    source["analysis"] = analysis_res.data[0] if analysis_res.data else None
+    return source
+
+
+def update_completed_topics(source_id: str, user_id: str, topics: list) -> bool:
+    sb = get_supabase()
+    analysis_res = (
+        sb.table("content_analyses")
+        .select("id")
+        .eq("source_id", source_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not analysis_res.data:
+        return False
+    analysis_id = analysis_res.data[0]["id"]
+    sb.table("content_analyses").update({"completed_topics": topics}).eq("id", analysis_id).execute()
+    return True
+
+
+def delete_content_source(source_id: str, user_id: str) -> bool:
+    res = (
+        get_supabase()
+        .table("content_sources")
+        .delete()
+        .eq("id", source_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
 # ── Push notification ─────────────────────────────────────────────────────────
 
 def send_notification(user_id: str, title: str, body: str) -> bool:
