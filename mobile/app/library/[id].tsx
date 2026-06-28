@@ -304,10 +304,11 @@ function QuizSection({ questions }: { questions: QuizQuestion[] }) {
 
 export default function LibraryDetailScreen() {
   const { id }                  = useLocalSearchParams<{ id: string }>()
-  const [source, setSource]     = useState<ContentSource | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [source, setSource]       = useState<ContentSource | null>(null)
+  const [loading, setLoading]     = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('Takeaways')
   const [completed, setCompleted] = useState<string[]>([])
+  const [expandedTakeaway, setExpandedTakeaway] = useState<number | null>(null)
 
   useFocusEffect(
     useCallback(() => {
@@ -376,8 +377,6 @@ export default function LibraryDetailScreen() {
   )
   const totalTopics = takeaways.length
   const donePct = totalTopics > 0 ? Math.round((completed.length / totalTopics) * 100) : 0
-
-  const [expandedTakeaway, setExpandedTakeaway] = useState<number | null>(null)
 
   const renderTabContent = () => {
     switch (activeTab) {
