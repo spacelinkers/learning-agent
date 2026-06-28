@@ -12,24 +12,39 @@ from app.models.schemas import ParseRequest, SaveScheduleRequest, SchedulePrevie
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
 
 PARSE_PROMPT = """
-Extract a structured learning schedule from this conversation.
-Return ONLY valid JSON. No markdown. No explanation.
+Extract a structured learning schedule from this text. Preserve ALL detail — every bullet point, resource, book, link, and tip must appear somewhere in the output. Do not summarise or drop any information.
+
+Return ONLY valid JSON. No markdown. No explanation. No code fences.
+
+Rules:
+- Each week or section becomes one track.
+- Each "What to learn" bullet becomes one subtopic/task. Put any sub-details in its description.
+- Add one final subtopic per track titled "Resources" whose description is a newline-separated list of every resource mentioned for that track (books, links, YouTube channels, blogs). Do not drop any resource.
+- estimated_days: use the number of days the section covers (e.g. "Week 1-2" = 14 days, "Week 1" = 7 days, "Month 1" = 30 days).
+- estimated_hours per task: study time needed, default 1.0 if not stated.
+- sequence_order: 1-based integer within each track.
+- description: include all extra detail, tips, or context for that task. Can be multi-line. Empty string if none.
 
 Schema:
 {{
-  "title": "short descriptive title",
+  "title": "short descriptive title of the full plan",
   "tracks": [
     {{
-      "title": "track name",
+      "title": "track title (e.g. Week 1-2: Django REST Framework)",
       "estimated_days": <int>,
       "subtopics": [
-        {{"title": "task name", "estimated_hours": <float>, "sequence_order": <int>}}
+        {{
+          "title": "concise task title",
+          "description": "full detail, sub-bullets, tips — preserve everything",
+          "estimated_hours": <float>,
+          "sequence_order": <int>
+        }}
       ]
     }}
   ]
 }}
 
-Conversation:
+Text to parse:
 {raw_text}
 """
 
