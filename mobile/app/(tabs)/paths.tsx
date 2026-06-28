@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, FlatList, RefreshControl,
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { colors } from '@/constants/colors'
 import { PathCard } from '@/components/PathCard'
 import { usePaths } from '@/hooks/usePaths'
@@ -42,6 +43,8 @@ export default function PathsScreen() {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
   }
 
+  const activeCount = paths.filter(p => p.status === 'active').length
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -56,32 +59,46 @@ export default function PathsScreen() {
           />
         )}
         ListHeaderComponent={
-          <Text style={styles.heading}>My Learning Paths</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.heading}>My Paths</Text>
+            {paths.length > 0 && (
+              <View style={styles.countChip}>
+                <Text style={styles.countText}>{activeCount} active</Text>
+              </View>
+            )}
+          </View>
         }
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>No active paths.{'\n'}Go to Import to add your first one!</Text>
+          <View style={styles.emptyBox}>
+            <Ionicons name="map-outline" size={48} color={colors.muted} />
+            <Text style={styles.emptyTitle}>No paths yet</Text>
+            <Text style={styles.emptyText}>Use Import to add your first learning path.</Text>
           </View>
         }
         contentContainerStyle={styles.list}
       />
 
-      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => router.push('/(tabs)/import')}>
-        <Text style={styles.fabText}>＋ Import</Text>
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.fabText}>Import</Text>
       </TouchableOpacity>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  center:    { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  list:      { padding: 16, paddingBottom: 90 },
-  heading:   { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 16 },
-  emptyText: { color: colors.muted, textAlign: 'center', lineHeight: 22 },
-  fab:       { position: 'absolute', bottom: 24, right: 24,
-               backgroundColor: colors.primary, borderRadius: 28,
-               paddingHorizontal: 20, paddingVertical: 14, elevation: 4 },
-  fabText:   { color: '#fff', fontWeight: '700', fontSize: 15 },
+  container:  { flex: 1, backgroundColor: colors.bg },
+  center:     { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list:       { padding: 16, paddingBottom: 100 },
+  headerRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  heading:    { fontSize: 22, fontWeight: '800', color: colors.text },
+  countChip:  { backgroundColor: colors.primaryMuted, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  countText:  { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  emptyBox:   { alignItems: 'center', paddingTop: 60, gap: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.textSub, marginTop: 8 },
+  emptyText:  { color: colors.muted, fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  fab:        { position: 'absolute', bottom: 24, right: 24,
+                backgroundColor: colors.primary, borderRadius: 28, flexDirection: 'row',
+                alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 13, elevation: 4 },
+  fabText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
 })

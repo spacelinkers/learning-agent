@@ -28,7 +28,7 @@ export function ProgressRing({
     <View style={{ alignItems: 'center', justifyContent: 'center', width: size, height: size }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
         {/* Track */}
-        <Circle cx={cx} cy={cx} r={r} stroke={colors.card} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx={cx} cy={cx} r={r} stroke={colors.surface} strokeWidth={strokeWidth} fill="none" />
         {/* Progress arc */}
         <Circle
           cx={cx} cy={cx} r={r}

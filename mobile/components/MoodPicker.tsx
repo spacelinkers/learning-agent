@@ -35,12 +35,12 @@ export function MoodPicker({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row:           { flexDirection: 'row', gap: 12 },
+  row:           { flexDirection: 'row', gap: 10, marginBottom: 20 },
   option:        { flex: 1, alignItems: 'center', paddingVertical: 12,
-                   backgroundColor: colors.card, borderRadius: 12,
-                   borderWidth: 2, borderColor: 'transparent' },
-  selected:      { borderColor: colors.primary },
-  emoji:         { fontSize: 28 },
+                   backgroundColor: colors.surface, borderRadius: 12,
+                   borderWidth: 1, borderColor: colors.border },
+  selected:      { borderColor: colors.primary, backgroundColor: colors.primaryMuted },
+  emoji:         { fontSize: 26 },
   label:         { marginTop: 4, fontSize: 12, color: colors.muted },
-  labelSelected: { color: colors.primary },
+  labelSelected: { color: colors.primary, fontWeight: '600' },
 })

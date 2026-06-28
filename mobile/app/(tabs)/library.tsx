@@ -16,13 +16,21 @@ import { router } from 'expo-router'
 import { colors } from '@/constants/colors'
 import { api, ContentSource } from '@/lib/api'
 
-const diffColor = (d?: string) =>
-  d === 'easy' ? colors.success : d === 'hard' ? colors.danger : colors.warning
+const DIFF_COLOR: Record<string, string> = {
+  easy:   colors.success,
+  medium: colors.warning,
+  hard:   colors.danger,
+}
+const DIFF_BG: Record<string, string> = {
+  easy:   colors.successMuted,
+  medium: colors.warningMuted,
+  hard:   colors.dangerMuted,
+}
 
 export default function LibraryScreen() {
-  const [url, setUrl]           = useState('')
-  const [sources, setSources]   = useState<ContentSource[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [url, setUrl]               = useState('')
+  const [sources, setSources]       = useState<ContentSource[]>([])
+  const [loading, setLoading]       = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -40,7 +48,6 @@ export default function LibraryScreen() {
 
   useEffect(() => { loadSources() }, [loadSources])
 
-  // Auto-poll while any source is still analyzing
   useEffect(() => {
     const hasAnalyzing = sources.some(s => s.status === 'analyzing')
     if (!hasAnalyzing) return
@@ -80,7 +87,7 @@ export default function LibraryScreen() {
   }
 
   const confirmDelete = (id: string, title: string) => {
-    Alert.alert('Remove', `Delete "${title || 'this source'}" from library?`, [
+    Alert.alert('Remove from Library', `"${title || 'This source'}" will be deleted.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -96,63 +103,101 @@ export default function LibraryScreen() {
     ])
   }
 
-  const renderSource = ({ item }: { item: ContentSource }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => item.status === 'done' && router.push(`/library/${item.id}`)}
-      onLongPress={() => confirmDelete(item.id, item.title || '')}
-      activeOpacity={item.status === 'done' ? 0.7 : 1}
-    >
-      <View style={styles.cardRow}>
-        <View style={[styles.badge, { backgroundColor: item.type === 'url' ? '#1D4ED8' : '#7C3AED' }]}>
-          <Text style={styles.badgeText}>{item.type.toUpperCase()}</Text>
+  const renderSource = ({ item }: { item: ContentSource }) => {
+    const isDone      = item.status === 'done'
+    const isAnalyzing = item.status === 'analyzing'
+    const isFailed    = item.status === 'failed'
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, isFailed && styles.cardFailed]}
+        onPress={() => isDone && router.push(`/library/${item.id}`)}
+        onLongPress={() => confirmDelete(item.id, item.title || '')}
+        activeOpacity={isDone ? 0.75 : 1}
+      >
+        <View style={styles.cardMeta}>
+          <View style={[
+            styles.typeBadge,
+            item.type === 'url'
+              ? { backgroundColor: colors.primaryMuted }
+              : { backgroundColor: 'rgba(139,92,246,0.15)' },
+          ]}>
+            <Ionicons
+              name={item.type === 'url' ? 'link-outline' : 'document-text-outline'}
+              size={11}
+              color={item.type === 'url' ? colors.primary : colors.rollover}
+            />
+            <Text style={[styles.typeBadgeText,
+              { color: item.type === 'url' ? colors.primary : colors.rollover }
+            ]}>
+              {item.type.toUpperCase()}
+            </Text>
+          </View>
+
+          {item.difficulty && (
+            <View style={[styles.diffBadge, { backgroundColor: DIFF_BG[item.difficulty] ?? colors.surface }]}>
+              <Text style={[styles.diffBadgeText, { color: DIFF_COLOR[item.difficulty] ?? colors.textSub }]}>
+                {item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1)}
+              </Text>
+            </View>
+          )}
+
+          {!!item.reading_time_minutes && (
+            <View style={styles.timeBadge}>
+              <Ionicons name="time-outline" size={11} color={colors.textSub} />
+              <Text style={styles.timeBadgeText}>{item.reading_time_minutes} min</Text>
+            </View>
+          )}
+
+          <View style={{ flex: 1 }} />
+          {isAnalyzing && <ActivityIndicator size="small" color={colors.primary} />}
+          {isDone      && <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
+          {isFailed    && <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />}
         </View>
-        {item.difficulty && (
-          <View style={[styles.badge, { backgroundColor: diffColor(item.difficulty) }]}>
-            <Text style={styles.badgeText}>{item.difficulty}</Text>
+
+        <Text style={[styles.cardTitle, isFailed && { color: colors.muted }]} numberOfLines={2}>
+          {item.title
+            || (isAnalyzing ? 'Analyzing content…' : item.url || item.filename || 'Untitled')}
+        </Text>
+
+        {isAnalyzing && (
+          <Text style={styles.analyzingText}>AI is reading this content…</Text>
+        )}
+
+        {item.prerequisites && item.prerequisites.length > 0 && (
+          <View style={styles.prereqRow}>
+            <Text style={styles.prereqLabel}>Needs: </Text>
+            <Text style={styles.prereqText}>{item.prerequisites.join(' · ')}</Text>
           </View>
         )}
-        {!!item.reading_time_minutes && (
-          <Text style={styles.metaText}>{item.reading_time_minutes} min</Text>
+
+        {isFailed && (
+          <Text style={styles.errorText}>Analysis failed — try again with a different URL.</Text>
         )}
-        <View style={{ flex: 1 }} />
-        {item.status === 'analyzing' && <ActivityIndicator size="small" color={colors.primary} />}
-        {item.status === 'done'      && <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
-        {item.status === 'failed'    && <Ionicons name="alert-circle" size={16} color={colors.danger} />}
-      </View>
-
-      <Text style={styles.cardTitle} numberOfLines={2}>
-        {item.title
-          || (item.status === 'analyzing' ? 'Analyzing content...' : item.url || item.filename || 'Untitled')}
-      </Text>
-
-      {item.prerequisites && item.prerequisites.length > 0 && (
-        <Text style={styles.prereqText}>Needs: {item.prerequisites.join(' · ')}</Text>
-      )}
-
-      {item.status === 'failed' && (
-        <Text style={[styles.prereqText, { color: colors.danger }]}>Analysis failed. Try again.</Text>
-      )}
-    </TouchableOpacity>
-  )
+      </TouchableOpacity>
+    )
+  }
 
   const header = (
-    <View style={styles.headerBox}>
+    <View style={styles.headerSection}>
       <Text style={styles.sectionLabel}>Add URL</Text>
-      <View style={styles.row}>
-        <TextInput
-          style={styles.input}
-          placeholder="https://..."
-          placeholderTextColor={colors.muted}
-          value={url}
-          onChangeText={setUrl}
-          autoCapitalize="none"
-          keyboardType="url"
-          returnKeyType="go"
-          onSubmitEditing={submitUrl}
-        />
+      <View style={styles.inputRow}>
+        <View style={styles.inputWrap}>
+          <Ionicons name="link-outline" size={15} color={colors.muted} style={{ marginRight: 6 }} />
+          <TextInput
+            style={styles.urlInput}
+            placeholder="https://..."
+            placeholderTextColor={colors.muted}
+            value={url}
+            onChangeText={setUrl}
+            autoCapitalize="none"
+            keyboardType="url"
+            returnKeyType="go"
+            onSubmitEditing={submitUrl}
+          />
+        </View>
         <TouchableOpacity
-          style={[styles.analyzeBtn, (!url.trim() || submitting) && { opacity: 0.5 }]}
+          style={[styles.analyzeBtn, (!url.trim() || submitting) && styles.analyzeBtnOff]}
           onPress={submitUrl}
           disabled={!url.trim() || submitting}
         >
@@ -163,18 +208,27 @@ export default function LibraryScreen() {
       </View>
 
       <TouchableOpacity style={styles.pdfBtn} onPress={pickPdf} disabled={submitting}>
-        <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+        <Ionicons name="document-text-outline" size={16} color={colors.primary} />
         <Text style={styles.pdfBtnText}>Upload PDF</Text>
       </TouchableOpacity>
 
-      {sources.length > 0 && <Text style={[styles.sectionLabel, { marginTop: 24 }]}>My Library</Text>}
+      {sources.length > 0 && (
+        <View style={styles.libraryHeader}>
+          <Text style={styles.sectionLabel}>My Library</Text>
+          <View style={styles.countChip}>
+            <Text style={styles.countText}>{sources.length}</Text>
+          </View>
+        </View>
+      )}
     </View>
   )
 
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
       ) : (
         <FlatList
           data={sources}
@@ -182,9 +236,10 @@ export default function LibraryScreen() {
           renderItem={renderSource}
           ListHeaderComponent={header}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="book-outline" size={48} color={colors.muted} />
-              <Text style={styles.emptyText}>No content yet.{'\n'}Add a URL or upload a PDF above.</Text>
+            <View style={styles.emptyBox}>
+              <Ionicons name="library-outline" size={48} color={colors.muted} />
+              <Text style={styles.emptyTitle}>Library is empty</Text>
+              <Text style={styles.emptyText}>Add a URL or PDF above to get{'\n'}AI-powered learning analysis.</Text>
             </View>
           }
           refreshControl={
@@ -194,7 +249,7 @@ export default function LibraryScreen() {
               tintColor={colors.primary}
             />
           }
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
         />
       )}
     </View>
@@ -202,22 +257,52 @@ export default function LibraryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: colors.bg },
-  headerBox:    { padding: 16 },
-  sectionLabel: { color: colors.muted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  row:          { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  input:        { flex: 1, backgroundColor: colors.card, color: colors.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
-  analyzeBtn:   { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
-  analyzeBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  pdfBtn:       { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.primary, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
-  pdfBtnText:   { color: colors.primary, fontWeight: '600', fontSize: 14 },
-  card:         { backgroundColor: colors.card, borderRadius: 12, marginHorizontal: 16, marginBottom: 10, padding: 14 },
-  cardRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  badge:        { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeText:    { color: '#fff', fontSize: 10, fontWeight: '700' },
-  metaText:     { color: colors.muted, fontSize: 12 },
-  cardTitle:    { color: colors.text, fontSize: 15, fontWeight: '600', lineHeight: 20 },
-  prereqText:   { color: colors.muted, fontSize: 12, marginTop: 6 },
-  empty:        { alignItems: 'center', paddingTop: 40, gap: 12 },
-  emptyText:    { color: colors.muted, fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  container:       { flex: 1, backgroundColor: colors.bg },
+  center:          { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
+
+  headerSection:   { padding: 16, paddingBottom: 8 },
+  sectionLabel:    { fontSize: 11, color: colors.muted, fontWeight: '700', textTransform: 'uppercase',
+                     letterSpacing: 0.8, marginBottom: 10 },
+
+  inputRow:        { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  inputWrap:       { flex: 1, flexDirection: 'row', alignItems: 'center',
+                     backgroundColor: colors.card, borderRadius: 12,
+                     borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10 },
+  urlInput:        { flex: 1, color: colors.text, paddingVertical: 11, fontSize: 14 },
+  analyzeBtn:      { backgroundColor: colors.primary, borderRadius: 12,
+                     paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+  analyzeBtnOff:   { opacity: 0.4 },
+  analyzeBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  pdfBtn:          { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+                     borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+                     paddingVertical: 9, paddingHorizontal: 14, marginBottom: 8 },
+  pdfBtnText:      { color: colors.primary, fontWeight: '600', fontSize: 14 },
+
+  libraryHeader:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 4 },
+  countChip:       { backgroundColor: colors.primaryMuted, width: 22, height: 22, borderRadius: 11,
+                     alignItems: 'center', justifyContent: 'center' },
+  countText:       { color: colors.primary, fontSize: 11, fontWeight: '700' },
+
+  card:            { backgroundColor: colors.card, borderRadius: 14, marginHorizontal: 16,
+                     marginBottom: 10, padding: 14, borderWidth: 1, borderColor: colors.border },
+  cardFailed:      { borderColor: colors.danger + '55' },
+  cardMeta:        { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  typeBadge:       { flexDirection: 'row', alignItems: 'center', gap: 4,
+                     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  typeBadgeText:   { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  diffBadge:       { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  diffBadgeText:   { fontSize: 10, fontWeight: '700' },
+  timeBadge:       { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  timeBadgeText:   { fontSize: 11, color: colors.textSub },
+  cardTitle:       { fontSize: 15, fontWeight: '600', color: colors.text, lineHeight: 21 },
+  analyzingText:   { fontSize: 12, color: colors.primary, marginTop: 6, fontStyle: 'italic' },
+  prereqRow:       { flexDirection: 'row', marginTop: 8 },
+  prereqLabel:     { fontSize: 12, color: colors.muted, fontWeight: '600' },
+  prereqText:      { fontSize: 12, color: colors.textSub, flex: 1 },
+  errorText:       { fontSize: 12, color: colors.danger, marginTop: 6 },
+
+  emptyBox:        { alignItems: 'center', paddingTop: 40, gap: 10 },
+  emptyTitle:      { fontSize: 16, fontWeight: '700', color: colors.textSub, marginTop: 8 },
+  emptyText:       { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22 },
 })
