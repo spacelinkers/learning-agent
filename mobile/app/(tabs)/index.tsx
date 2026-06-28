@@ -24,17 +24,15 @@ export default function TodayScreen() {
   const dateStr = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`
   const allDone = done === total && total > 0
 
-  // Ring color shifts as you progress: red → amber → green
-  const ringColor = pct < 0.4
-    ? colors.warning
-    : pct < 0.8
-      ? colors.teal
-      : colors.success
+  // Progress ring color shifts as tasks complete: amber → teal → emerald
+  const ringColor = allDone
+    ? colors.success
+    : pct < 0.4 ? colors.warning : pct < 0.8 ? colors.teal : colors.success
 
   if (loading && !plan) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.cyan} />
         <Text style={styles.loadingText}>Building your plan…</Text>
       </View>
     )
@@ -53,12 +51,16 @@ export default function TodayScreen() {
       <FlatList
         data={plan?.items ?? []}
         keyExtractor={item => item.item_id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.cyan} />}
         ListHeaderComponent={
           <View>
-            {/* Hero card — indigo section */}
+            {/* Hero card with indigo→cyan gradient strip */}
             <View style={styles.heroCard}>
-              <View style={[styles.heroAccent, { backgroundColor: colors.primary }]} />
+              <View style={styles.heroGradientStrip}>
+                <View style={[styles.heroStripSegment, { backgroundColor: colors.primary, flex: 2 }]} />
+                <View style={[styles.heroStripSegment, { backgroundColor: colors.violet, flex: 1 }]} />
+                <View style={[styles.heroStripSegment, { backgroundColor: colors.cyan, flex: 2 }]} />
+              </View>
               <View style={styles.heroInner}>
                 <View style={styles.heroLeft}>
                   <Text style={styles.dateText}>{dateStr}</Text>
@@ -76,13 +78,17 @@ export default function TodayScreen() {
                   progress={pct}
                   size={72}
                   strokeWidth={6}
-                  color={allDone ? colors.success : ringColor}
+                  color={ringColor}
                 />
               </View>
             </View>
 
             {total > 0 && (
-              <Text style={styles.sectionLabel}>Today's Tasks</Text>
+              <View style={styles.sectionRow}>
+                <View style={[styles.sectionDot, { backgroundColor: colors.primary }]} />
+                <View style={[styles.sectionDot, { backgroundColor: colors.cyan }]} />
+                <Text style={styles.sectionLabel}>Today's Tasks</Text>
+              </View>
             )}
           </View>
         }
@@ -106,27 +112,31 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: colors.bg },
-  center:      { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  loadingText: { marginTop: 12, color: colors.textSub, fontSize: 14 },
-  errorText:   { color: colors.danger, textAlign: 'center' },
-  list:        { padding: 16, paddingBottom: 32 },
+  container:        { flex: 1, backgroundColor: colors.bg },
+  center:           { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  loadingText:      { marginTop: 12, color: colors.textSub, fontSize: 14 },
+  errorText:        { color: colors.danger, textAlign: 'center' },
+  list:             { padding: 16, paddingBottom: 32 },
 
-  heroCard:    { backgroundColor: colors.card, borderRadius: 16, marginBottom: 24,
-                 borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-  heroAccent:  { height: 3 },
-  heroInner:   { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heroLeft:    { flex: 1, paddingRight: 12 },
-  dateText:    { fontSize: 12, color: colors.textSub, fontWeight: '500', marginBottom: 6, letterSpacing: 0.3 },
-  heroTitle:   { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 2, lineHeight: 26 },
-  heroSub:     { fontSize: 13, color: colors.textSub, marginBottom: 10 },
-  budgetChip:  { backgroundColor: colors.primaryMuted, alignSelf: 'flex-start',
-                 paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  budgetText:  { color: colors.primary, fontSize: 12, fontWeight: '600' },
+  heroCard:         { backgroundColor: colors.card, borderRadius: 16, marginBottom: 24,
+                      borderWidth: 1, borderColor: colors.borderLight, overflow: 'hidden' },
+  heroGradientStrip:{ flexDirection: 'row', height: 4 },
+  heroStripSegment: { height: 4 },
+  heroInner:        { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroLeft:         { flex: 1, paddingRight: 12 },
+  dateText:         { fontSize: 12, color: colors.textSub, fontWeight: '500', marginBottom: 6, letterSpacing: 0.3 },
+  heroTitle:        { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 2, lineHeight: 26 },
+  heroSub:          { fontSize: 13, color: colors.textSub, marginBottom: 10 },
+  budgetChip:       { backgroundColor: colors.cyanMuted, alignSelf: 'flex-start',
+                      paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+                      borderWidth: 1, borderColor: colors.cyan + '33' },
+  budgetText:       { color: colors.cyan, fontSize: 12, fontWeight: '600' },
 
-  sectionLabel:{ fontSize: 11, color: colors.primary, fontWeight: '700', textTransform: 'uppercase',
-                 letterSpacing: 0.8, marginBottom: 12 },
-  emptyBox:    { alignItems: 'center', paddingVertical: 40 },
-  emptyTitle:  { fontSize: 16, fontWeight: '700', color: colors.textSub, marginBottom: 6 },
-  emptyText:   { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22 },
+  sectionRow:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 },
+  sectionDot:       { width: 6, height: 6, borderRadius: 3 },
+  sectionLabel:     { fontSize: 11, color: colors.textSub, fontWeight: '700',
+                      textTransform: 'uppercase', letterSpacing: 0.8 },
+  emptyBox:         { alignItems: 'center', paddingVertical: 40 },
+  emptyTitle:       { fontSize: 16, fontWeight: '700', color: colors.textSub, marginBottom: 6 },
+  emptyText:        { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22 },
 })

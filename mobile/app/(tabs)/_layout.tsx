@@ -27,12 +27,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarStyle:            { backgroundColor: colors.card, borderTopColor: colors.border, height: 60 },
+        tabBarStyle:            { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, height: 60 },
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle:       { fontSize: 11, marginBottom: 6 },
         headerStyle:            { backgroundColor: colors.bg },
         headerTintColor:        colors.text,
         headerShadowVisible:    false,
+        headerTitleStyle:       { color: colors.text },
       }}
     >
       <Tabs.Screen

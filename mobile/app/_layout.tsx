@@ -39,7 +39,7 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <>
-      <StatusBar style="light" backgroundColor={colors.bg} />
+      <StatusBar style="dark" backgroundColor={colors.bg} />
       <AuthGuard />
     </>
   )
