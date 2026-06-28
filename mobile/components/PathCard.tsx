@@ -6,10 +6,11 @@ import { ProgressRing } from './ProgressRing'
 
 interface Props {
   path: LearningPath
-  progress?: number                                   // 0–1, computed by caller
+  progress?: number
   paceStatus?: 'on_track' | 'slight_delay' | 'behind'
   daysBehind?: number
   onPress?: () => void
+  onLongPress?: () => void
 }
 
 const PACE_COLOR: Record<string, string> = {
@@ -26,7 +27,7 @@ const PACE_LABEL: Record<string, string> = {
 
 const PRIORITY_LABELS = ['', 'P1 — Critical', 'P2 — High', 'P3 — Normal', 'P4 — Low', 'P5 — Minimal']
 
-export function PathCard({ path, progress = 0, paceStatus, daysBehind, onPress }: Props) {
+export function PathCard({ path, progress = 0, paceStatus, daysBehind, onPress, onLongPress }: Props) {
   const ringColor = paceStatus ? PACE_COLOR[paceStatus] : colors.primary
   const paceLabel = paceStatus
     ? daysBehind && daysBehind > 0
@@ -35,7 +36,7 @@ export function PathCard({ path, progress = 0, paceStatus, daysBehind, onPress }
     : null
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.8}>
       <View style={styles.row}>
         <View style={styles.info}>
           <Text style={styles.priority}>{PRIORITY_LABELS[path.priority]}</Text>

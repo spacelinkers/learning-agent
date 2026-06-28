@@ -9,22 +9,33 @@ import { usePaths } from '@/hooks/usePaths'
 import { useRouter } from 'expo-router'
 
 export default function PathsScreen() {
-  const { paths, loading, error, refresh, updateStatus } = usePaths()
+  const { paths, loading, error, refresh, updateStatus, deletePath } = usePaths()
   const router = useRouter()
 
   useEffect(() => { refresh() }, [])
 
-  function handleLongPress(pathId: string, currentStatus: string) {
+  function handleLongPress(pathId: string, pathTitle: string, currentStatus: string) {
     const isPaused = currentStatus === 'paused'
-    Alert.alert(
-      'Path Options',
-      undefined,
-      [
-        { text: isPaused ? 'Resume' : 'Pause', onPress: () => updateStatus(pathId, isPaused ? 'active' : 'paused') },
-        { text: 'Mark Complete', style: 'destructive', onPress: () => updateStatus(pathId, 'completed') },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    )
+    Alert.alert('Path Options', pathTitle, [
+      {
+        text: isPaused ? 'Resume' : 'Pause',
+        onPress: () => updateStatus(pathId, isPaused ? 'active' : 'paused'),
+      },
+      {
+        text: 'Mark Complete',
+        onPress: () => updateStatus(pathId, 'completed'),
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Delete path?', `"${pathTitle}" and all its tracks and tasks will be permanently deleted.`, [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: () => deletePath(pathId) },
+          ]),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ])
   }
 
   if (loading && !paths.length) {
@@ -41,7 +52,7 @@ export default function PathsScreen() {
           <PathCard
             path={item}
             onPress={() => router.push(`/path/${item.id}` as any)}
-            // progress & pace come from the planner; shown when path detail is loaded
+            onLongPress={() => handleLongPress(item.id, item.title, item.status)}
           />
         )}
         ListHeaderComponent={

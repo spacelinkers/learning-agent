@@ -93,7 +93,7 @@ export default function PathDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>{error ?? 'Path not found'}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/paths' as any)} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Go back</Text>
         </TouchableOpacity>
       </View>
@@ -111,7 +111,7 @@ export default function PathDetailScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/paths' as any)}>
           <Text style={styles.back}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerInfo}>

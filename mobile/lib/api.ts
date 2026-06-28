@@ -160,6 +160,8 @@ export const api = {
     apiCall(`/api/paths/${id}/priority`, 'PUT', { priority }),
   updateStatus:   (id: string, status: string) =>
     apiCall(`/api/paths/${id}/status`, 'PUT', { status }),
+  deletePath:     (id: string) =>
+    apiCall(`/api/paths/${id}`, 'DELETE'),
 
   // Log
   logTask:        (data: LogData)               => apiCall('/api/log', 'POST', data),

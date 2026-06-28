@@ -28,5 +28,10 @@ export function usePaths() {
     refresh()
   }, [refresh])
 
-  return { paths, loading, error, refresh, updatePriority, updateStatus }
+  const deletePath = useCallback(async (pathId: string) => {
+    await api.deletePath(pathId)
+    refresh()
+  }, [refresh])
+
+  return { paths, loading, error, refresh, updatePriority, updateStatus, deletePath }
 }
