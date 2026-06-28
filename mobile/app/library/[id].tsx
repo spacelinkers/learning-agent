@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   BackHandler,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ import {
   ContentSource,
   Flashcard,
   InterviewQuestion,
+  NextReads,
   Project,
   QuizQuestion,
   Takeaway,
@@ -94,56 +96,81 @@ function ProjectsSection({ projects }: { projects: Project[] }) {
   )
 }
 
-function NextReadsSection({ items }: { items: NonNullable<ContentSource['analysis']>['next_reads'] }) {
-  const icon = (type: string): keyof typeof Ionicons.glyphMap =>
-    type === 'book'    ? 'book-outline'         :
-    type === 'video'   ? 'play-circle-outline'  :
-    type === 'blog'    ? 'globe-outline'         :
-    type === 'article' ? 'newspaper-outline'    : 'bulb-outline'
+function NextReadsSection({ raw }: { raw: NonNullable<ContentSource['analysis']>['next_reads'] }) {
+  const openUrl = (url?: string) => {
+    if (url) Linking.openURL(url).catch(() => Alert.alert('Cannot open link', url))
+  }
 
-  const typeColor = (type: string) =>
-    type === 'book'    ? '#7C3AED' :
-    type === 'blog'    ? '#0891B2' :
-    type === 'article' ? '#059669' : '#D97706'
+  type Item = { title: string; author?: string; source?: string; reason: string; url?: string }
 
-  // Group by type for display
-  const books   = items.filter(r => r.type === 'book')
-  const articles = items.filter(r => r.type !== 'book')
+  // Normalise: new format = {books,articles,blogs}; old format = flat array
+  let books: Item[] = [], articles: Item[] = [], blogs: Item[] = []
+  if (Array.isArray(raw)) {
+    books    = (raw as any[]).filter(r => r.type === 'book')
+    articles = (raw as any[]).filter(r => r.type === 'article' || r.type === 'concept' || r.type === 'video')
+    blogs    = (raw as any[]).filter(r => r.type === 'blog')
+  } else if (raw && typeof raw === 'object') {
+    const nr = raw as NextReads
+    books    = nr.books    || []
+    articles = nr.articles || []
+    blogs    = nr.blogs    || []
+  }
 
-  const renderItem = (r: typeof items[0], i: number) => (
-    <View key={i} style={s.nextCard}>
-      <View style={[s.nextIconBox, { backgroundColor: typeColor(r.type) + '22' }]}>
-        <Ionicons name={icon(r.type)} size={20} color={typeColor(r.type)} />
+  const Card = ({ item, iconName, iconColor, label }: {
+    item: Item
+    iconName: keyof typeof Ionicons.glyphMap
+    iconColor: string
+    label: string
+  }) => (
+    <TouchableOpacity
+      style={[s.nextCard, !!item.url && s.nextCardClickable]}
+      onPress={() => openUrl(item.url)}
+      activeOpacity={item.url ? 0.7 : 1}
+    >
+      <View style={[s.nextIconBox, { backgroundColor: iconColor + '22' }]}>
+        <Ionicons name={iconName} size={20} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={s.nextHeaderRow}>
-          <Text style={s.nextTitle} numberOfLines={2}>{r.title}</Text>
-          <View style={[s.typePill, { backgroundColor: typeColor(r.type) }]}>
-            <Text style={s.typePillText}>{r.type.toUpperCase()}</Text>
+          <Text style={[s.nextTitle, !!item.url && s.nextTitleLink]} numberOfLines={2}>{item.title}</Text>
+          <View style={[s.typePill, { backgroundColor: iconColor }]}>
+            <Text style={s.typePillText}>{label}</Text>
           </View>
         </View>
-        {(r.author || r.source) && (
-          <Text style={s.nextMeta}>
-            {[r.author, r.source].filter(Boolean).join(' · ')}
-          </Text>
+        {(item.author || item.source) && (
+          <Text style={s.nextMeta}>{[item.author, item.source].filter(Boolean).join(' · ')}</Text>
         )}
-        <Text style={s.nextReason}>{r.reason}</Text>
+        <Text style={s.nextReason}>{item.reason}</Text>
+        {!!item.url && (
+          <View style={s.urlRow}>
+            <Ionicons name="open-outline" size={12} color={colors.primary} />
+            <Text style={s.urlText} numberOfLines={1}>{item.url}</Text>
+          </View>
+        )}
       </View>
-    </View>
+    </TouchableOpacity>
   )
 
+  const hasAny = books.length > 0 || articles.length > 0 || blogs.length > 0
   return (
     <View style={s.section}>
+      {!hasAny && <Text style={s.nextMeta}>No recommendations — re-analyze to generate them.</Text>}
       {books.length > 0 && (
         <>
           <Text style={s.groupLabel}>Books</Text>
-          {books.map(renderItem)}
+          {books.map((b, i) => <Card key={i} item={b} iconName="book-outline" iconColor="#7C3AED" label="BOOK" />)}
         </>
       )}
       {articles.length > 0 && (
         <>
-          <Text style={[s.groupLabel, books.length > 0 && { marginTop: 8 }]}>Articles & Blogs</Text>
-          {articles.map(renderItem)}
+          <Text style={[s.groupLabel, { marginTop: books.length > 0 ? 16 : 0 }]}>Articles</Text>
+          {articles.map((a, i) => <Card key={i} item={a} iconName="newspaper-outline" iconColor="#059669" label="ARTICLE" />)}
+        </>
+      )}
+      {blogs.length > 0 && (
+        <>
+          <Text style={[s.groupLabel, { marginTop: (books.length > 0 || articles.length > 0) ? 16 : 0 }]}>Blogs</Text>
+          {blogs.map((b, i) => <Card key={i} item={b} iconName="globe-outline" iconColor="#0891B2" label="BLOG" />)}
         </>
       )}
     </View>
@@ -446,7 +473,7 @@ export default function LibraryDetailScreen() {
       case 'Projects':
         return <ProjectsSection projects={analysis.projects || []} />
       case 'Next Reads':
-        return <NextReadsSection items={analysis.next_reads || []} />
+        return <NextReadsSection raw={analysis.next_reads || []} />
       case 'Interview':
         return <InterviewSection iq={analysis.interview_questions || { junior: [], mid: [], senior: [] }} />
       case 'Flashcards':
@@ -571,7 +598,11 @@ const s = StyleSheet.create({
 
   // Next Reads
   groupLabel:     { color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  nextCard:       { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: colors.card, borderRadius: 10, marginBottom: 10 },
+  nextCard:         { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: colors.card, borderRadius: 10, marginBottom: 10 },
+  nextCardClickable:{ borderColor: colors.primary, borderWidth: 1 },
+  nextTitleLink:    { color: colors.primary },
+  urlRow:           { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  urlText:          { color: colors.primary, fontSize: 11, flex: 1 },
   nextIconBox:    { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0, marginTop: 2 },
   nextHeaderRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 2 },
   nextTitle:      { color: colors.text, fontSize: 14, fontWeight: '600', flex: 1, lineHeight: 20 },

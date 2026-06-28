@@ -139,48 +139,52 @@ Rules:
     {{"title": "...", "description": "...", "tech_stack": ["..."], "difficulty": "medium"}},
     {{"title": "...", "description": "...", "tech_stack": ["..."], "difficulty": "hard"}}
   ],
-  "next_reads": [
-    {{
-      "title": "Real book title",
-      "author": "Real Author Name",
-      "type": "book",
-      "source": "",
-      "reason": "Specific reason this book deepens understanding of the topic",
-      "url": "https://amazon.com/... or official site if known"
-    }},
-    {{
-      "title": "Real book title",
-      "author": "Real Author Name",
-      "type": "book",
-      "source": "",
-      "reason": "...",
-      "url": ""
-    }},
-    {{
-      "title": "Real article or blog post title",
-      "author": "Author name if known",
-      "type": "article",
-      "source": "e.g. martinfowler.com / Real Python / official docs",
-      "reason": "Why this article is essential reading",
-      "url": "https://real-url-if-known.com/article"
-    }},
-    {{
-      "title": "Real blog post title",
-      "author": "...",
-      "type": "blog",
-      "source": "Blog name",
-      "reason": "...",
-      "url": "https://..."
-    }},
-    {{
-      "title": "...",
-      "author": "...",
-      "type": "article",
-      "source": "...",
-      "reason": "...",
-      "url": ""
-    }}
-  ],
+  "next_reads": {{
+    "books": [
+      {{
+        "title": "REAL published book title — not made up",
+        "author": "Real author full name",
+        "reason": "One sentence on why this book is essential for this topic",
+        "url": "https://amazon.com or publisher URL if known, else empty string"
+      }},
+      {{
+        "title": "Second real book title",
+        "author": "Real author name",
+        "reason": "...",
+        "url": ""
+      }}
+    ],
+    "articles": [
+      {{
+        "title": "Real article title from official docs, MDN, Real Python, CSS-Tricks, etc.",
+        "source": "Source name e.g. Real Python / MDN Web Docs / official docs",
+        "reason": "Why this article is the best reference for this concept",
+        "url": "https://real-url.com/article — include actual URL when you know it"
+      }},
+      {{
+        "title": "...",
+        "source": "...",
+        "reason": "...",
+        "url": ""
+      }}
+    ],
+    "blogs": [
+      {{
+        "title": "Real blog post title",
+        "author": "Author name",
+        "source": "Blog name e.g. Martin Fowler Blog / Netflix Tech Blog / Overreacted",
+        "reason": "What insight this post adds beyond the content above",
+        "url": "https://real-blog-url.com/post — include actual URL when you know it"
+      }},
+      {{
+        "title": "...",
+        "author": "...",
+        "source": "...",
+        "reason": "...",
+        "url": ""
+      }}
+    ]
+  }},
   "difficulty": "easy",
   "reading_time_minutes": 20,
   "prerequisites": ["prerequisite1", "prerequisite2"],

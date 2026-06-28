@@ -131,13 +131,32 @@ export interface Takeaway {
   language?: string
 }
 
-export interface NextRead {
+export interface NextReadBook {
   title: string
-  author?: string
-  type: 'book' | 'article' | 'blog' | 'concept' | 'video'
-  source?: string
+  author: string
   reason: string
   url?: string
+}
+
+export interface NextReadArticle {
+  title: string
+  source: string
+  reason: string
+  url?: string
+}
+
+export interface NextReadBlog {
+  title: string
+  author?: string
+  source: string
+  reason: string
+  url?: string
+}
+
+export interface NextReads {
+  books: NextReadBook[]
+  articles: NextReadArticle[]
+  blogs: NextReadBlog[]
 }
 
 export interface InterviewQuestion {
@@ -167,7 +186,7 @@ export interface ContentAnalysis {
     production: CodeExample
   }
   projects: Project[]
-  next_reads: NextRead[]
+  next_reads: NextReads | NextRead[]   // NextReads for new analyses; NextRead[] backward compat
   interview_questions: {
     junior: InterviewQuestion[]
     mid: InterviewQuestion[]
