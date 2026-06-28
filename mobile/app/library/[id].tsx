@@ -548,7 +548,7 @@ const s = StyleSheet.create({
   tabBtn:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.card },
   tabBtnActive:   { backgroundColor: colors.primary },
   tabText:        { color: colors.muted, fontSize: 13, fontWeight: '500' },
-  tabTextActive:  { color: '#fff', fontWeight: '700' },
+  tabTextActive:  { color: colors.bg, fontWeight: '700' },
 
   // Shared
   section:        { padding: 16 },
@@ -557,7 +557,7 @@ const s = StyleSheet.create({
   seg:            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.card },
   segActive:      { backgroundColor: colors.primary },
   segText:        { color: colors.muted, fontSize: 13 },
-  segTextActive:  { color: '#fff', fontWeight: '600' },
+  segTextActive:  { color: colors.bg, fontWeight: '600' },
 
   // Takeaways
   progressRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
@@ -582,7 +582,7 @@ const s = StyleSheet.create({
   codeHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   codeTitle:      { color: colors.text, fontSize: 13, fontWeight: '600', flex: 1 },
   langBadge:      { backgroundColor: colors.primary, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  langText:       { color: '#fff', fontSize: 10, fontWeight: '700' },
+  langText:       { color: colors.bg, fontSize: 10, fontWeight: '700' },
   codeBlock:      { color: '#A8FF78', fontFamily: 'monospace', fontSize: 12, lineHeight: 18 },
   codeExplain:    { color: colors.muted, fontSize: 13, marginTop: 12, lineHeight: 18 },
 
@@ -634,9 +634,9 @@ const s = StyleSheet.create({
   explanBox:      { backgroundColor: '#1E293B', borderRadius: 10, padding: 12, marginTop: 4 },
   explanText:     { color: colors.muted, fontSize: 13, lineHeight: 20 },
   nextBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 10, padding: 14, marginTop: 16 },
-  nextBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+  nextBtnText:    { color: colors.bg, fontWeight: '700', fontSize: 15 },
   scoreTitle:     { color: colors.text, fontSize: 32, fontWeight: '800', marginTop: 12 },
   scoreSub:       { color: colors.muted, fontSize: 16, marginTop: 4 },
   retryBtn:       { marginTop: 24, backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 },
-  retryText:      { color: '#fff', fontWeight: '700', fontSize: 15 },
+  retryText:      { color: colors.bg, fontWeight: '700', fontSize: 15 },
 })
