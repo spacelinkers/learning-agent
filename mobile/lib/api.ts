@@ -126,7 +126,15 @@ async function apiCall<T = unknown>(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).detail ?? `API error ${res.status}`)
+    const detail = (err as any).detail
+    const message = !detail
+      ? `API error ${res.status}`
+      : typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: any) => d.msg ?? JSON.stringify(d)).join(', ')
+          : JSON.stringify(detail)
+    throw new Error(message)
   }
   return res.json() as T
 }

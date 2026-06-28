@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class ParseRequest(BaseModel):
-    raw_text: str = Field(..., max_length=8000)
+    raw_text: str = Field(..., max_length=40000)
 
 
 class TaskPreview(BaseModel):
