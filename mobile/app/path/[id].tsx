@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  ActivityIndicator, FlatList, ScrollView, StyleSheet,
+  ActivityIndicator, BackHandler, FlatList, ScrollView, StyleSheet,
   Text, TouchableOpacity, View,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -85,6 +85,15 @@ export default function PathDetailScreen() {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Intercept Android hardware/gesture back — always go to Paths tab
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/(tabs)/paths' as any)
+      return true  // true = we handled it, don't bubble
+    })
+    return () => sub.remove()
+  }, [router])
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
