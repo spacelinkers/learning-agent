@@ -62,7 +62,7 @@ Return ONLY JSON. No markdown.
 """
 
 CONTENT_ANALYSIS_PROMPT = """
-You are a learning assistant. Deeply analyze the following content and produce a structured learning guide.
+You are an expert learning assistant and software engineer. Deeply analyze the following content and produce a rich structured learning guide.
 
 Title: {title}
 
@@ -71,10 +71,42 @@ Content:
 
 Return ONLY valid JSON — no markdown, no explanation, no code fences.
 
+Rules:
+- takeaways: Each point must be a DETAILED teaching note (3-5 sentences of explanation) with a working code snippet that demonstrates the concept. Do not write one-liners — teach like a senior engineer explaining to a junior.
+- next_reads: Recommend REAL, specific books with real authors, and REAL blog posts/articles from known sources (official docs, martinfowler.com, realpython.com, css-tricks.com, engineering blogs, etc.). Include the actual URL when you know it. Mix books, articles, and blog posts.
+
 {{
   "takeaways": [
-    "Key concept as a clear one-sentence insight",
-    "..."
+    {{
+      "title": "Short concept title (5-8 words)",
+      "explanation": "3-5 sentences explaining WHY this matters, HOW it works, and WHEN to use it. Write for a developer who needs to understand deeply, not just recognize the term.",
+      "code": "# Working code snippet demonstrating the concept\\n# Include comments explaining key lines\\nexample = 'code here'",
+      "language": "python"
+    }},
+    {{
+      "title": "...",
+      "explanation": "...",
+      "code": "...",
+      "language": "python"
+    }},
+    {{
+      "title": "...",
+      "explanation": "...",
+      "code": "...",
+      "language": "python"
+    }},
+    {{
+      "title": "...",
+      "explanation": "...",
+      "code": "...",
+      "language": "python"
+    }},
+    {{
+      "title": "...",
+      "explanation": "...",
+      "code": "...",
+      "language": "python"
+    }}
   ],
   "code": {{
     "simple": {{
@@ -103,47 +135,48 @@ Return ONLY valid JSON — no markdown, no explanation, no code fences.
       "tech_stack": ["tech1", "tech2"],
       "difficulty": "easy"
     }},
-    {{
-      "title": "...",
-      "description": "...",
-      "tech_stack": ["..."],
-      "difficulty": "medium"
-    }},
-    {{
-      "title": "...",
-      "description": "...",
-      "tech_stack": ["..."],
-      "difficulty": "medium"
-    }},
-    {{
-      "title": "...",
-      "description": "...",
-      "tech_stack": ["..."],
-      "difficulty": "hard"
-    }}
+    {{"title": "...", "description": "...", "tech_stack": ["..."], "difficulty": "medium"}},
+    {{"title": "...", "description": "...", "tech_stack": ["..."], "difficulty": "medium"}},
+    {{"title": "...", "description": "...", "tech_stack": ["..."], "difficulty": "hard"}}
   ],
   "next_reads": [
     {{
-      "title": "Resource title",
+      "title": "Real book title",
+      "author": "Real Author Name",
       "type": "book",
-      "reason": "Why this builds on what you just read",
+      "source": "",
+      "reason": "Specific reason this book deepens understanding of the topic",
+      "url": "https://amazon.com/... or official site if known"
+    }},
+    {{
+      "title": "Real book title",
+      "author": "Real Author Name",
+      "type": "book",
+      "source": "",
+      "reason": "...",
       "url": ""
     }},
     {{
-      "title": "...",
+      "title": "Real article or blog post title",
+      "author": "Author name if known",
       "type": "article",
+      "source": "e.g. martinfowler.com / Real Python / official docs",
+      "reason": "Why this article is essential reading",
+      "url": "https://real-url-if-known.com/article"
+    }},
+    {{
+      "title": "Real blog post title",
+      "author": "...",
+      "type": "blog",
+      "source": "Blog name",
       "reason": "...",
-      "url": ""
+      "url": "https://..."
     }},
     {{
       "title": "...",
-      "type": "concept",
-      "reason": "...",
-      "url": ""
-    }},
-    {{
-      "title": "...",
-      "type": "video",
+      "author": "...",
+      "type": "article",
+      "source": "...",
       "reason": "...",
       "url": ""
     }}

@@ -124,9 +124,18 @@ export interface Project {
   difficulty: 'easy' | 'medium' | 'hard'
 }
 
+export interface Takeaway {
+  title: string
+  explanation: string
+  code?: string
+  language?: string
+}
+
 export interface NextRead {
   title: string
-  type: 'book' | 'article' | 'concept' | 'video'
+  author?: string
+  type: 'book' | 'article' | 'blog' | 'concept' | 'video'
+  source?: string
   reason: string
   url?: string
 }
@@ -151,7 +160,7 @@ export interface QuizQuestion {
 export interface ContentAnalysis {
   id: string
   source_id: string
-  takeaways: string[]
+  takeaways: Takeaway[]
   code: {
     simple: CodeExample
     intermediate: CodeExample

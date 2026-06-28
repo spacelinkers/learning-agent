@@ -20,6 +20,7 @@ import {
   InterviewQuestion,
   Project,
   QuizQuestion,
+  Takeaway,
 } from '@/lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -95,18 +96,56 @@ function ProjectsSection({ projects }: { projects: Project[] }) {
 
 function NextReadsSection({ items }: { items: NonNullable<ContentSource['analysis']>['next_reads'] }) {
   const icon = (type: string): keyof typeof Ionicons.glyphMap =>
-    type === 'book' ? 'book-outline' : type === 'video' ? 'play-circle-outline' : type === 'article' ? 'newspaper-outline' : 'bulb-outline'
-  return (
-    <View style={s.section}>
-      {items.map((r, i) => (
-        <View key={i} style={s.nextCard}>
-          <Ionicons name={icon(r.type)} size={22} color={colors.primary} style={{ marginTop: 2 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={s.nextTitle}>{r.title}</Text>
-            <Text style={s.nextReason}>{r.reason}</Text>
+    type === 'book'    ? 'book-outline'         :
+    type === 'video'   ? 'play-circle-outline'  :
+    type === 'blog'    ? 'globe-outline'         :
+    type === 'article' ? 'newspaper-outline'    : 'bulb-outline'
+
+  const typeColor = (type: string) =>
+    type === 'book'    ? '#7C3AED' :
+    type === 'blog'    ? '#0891B2' :
+    type === 'article' ? '#059669' : '#D97706'
+
+  // Group by type for display
+  const books   = items.filter(r => r.type === 'book')
+  const articles = items.filter(r => r.type !== 'book')
+
+  const renderItem = (r: typeof items[0], i: number) => (
+    <View key={i} style={s.nextCard}>
+      <View style={[s.nextIconBox, { backgroundColor: typeColor(r.type) + '22' }]}>
+        <Ionicons name={icon(r.type)} size={20} color={typeColor(r.type)} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={s.nextHeaderRow}>
+          <Text style={s.nextTitle} numberOfLines={2}>{r.title}</Text>
+          <View style={[s.typePill, { backgroundColor: typeColor(r.type) }]}>
+            <Text style={s.typePillText}>{r.type.toUpperCase()}</Text>
           </View>
         </View>
-      ))}
+        {(r.author || r.source) && (
+          <Text style={s.nextMeta}>
+            {[r.author, r.source].filter(Boolean).join(' · ')}
+          </Text>
+        )}
+        <Text style={s.nextReason}>{r.reason}</Text>
+      </View>
+    </View>
+  )
+
+  return (
+    <View style={s.section}>
+      {books.length > 0 && (
+        <>
+          <Text style={s.groupLabel}>Books</Text>
+          {books.map(renderItem)}
+        </>
+      )}
+      {articles.length > 0 && (
+        <>
+          <Text style={[s.groupLabel, books.length > 0 && { marginTop: 8 }]}>Articles & Blogs</Text>
+          {articles.map(renderItem)}
+        </>
+      )}
     </View>
   )
 }
@@ -332,16 +371,19 @@ export default function LibraryDetailScreen() {
   }
 
   const analysis = source.analysis!
-  const takeaways = analysis.takeaways || []
+  const takeaways: Takeaway[] = (analysis.takeaways || []).map((t: any) =>
+    typeof t === 'string' ? { title: t, explanation: '', code: '', language: '' } : t
+  )
   const totalTopics = takeaways.length
   const donePct = totalTopics > 0 ? Math.round((completed.length / totalTopics) * 100) : 0
+
+  const [expandedTakeaway, setExpandedTakeaway] = useState<number | null>(null)
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Takeaways':
         return (
           <View style={s.section}>
-            {/* Progress bar */}
             <View style={s.progressRow}>
               <View style={s.progressBg}>
                 <View style={[s.progressFill, { width: `${donePct}%` as any }]} />
@@ -349,18 +391,55 @@ export default function LibraryDetailScreen() {
               <Text style={s.progressText}>{donePct}%</Text>
             </View>
             {completed.length > 0 && (
-              <Text style={s.completedLabel}>Completed: {completed.join(' · ')}</Text>
+              <Text style={s.completedLabel}>
+                {completed.length}/{totalTopics} completed
+              </Text>
             )}
-            {takeaways.map((t, i) => (
-              <TouchableOpacity key={i} style={s.takeawayRow} onPress={() => toggleTopic(t)} activeOpacity={0.7}>
-                <Ionicons
-                  name={completed.includes(t) ? 'checkbox' : 'square-outline'}
-                  size={20}
-                  color={completed.includes(t) ? colors.success : colors.muted}
-                />
-                <Text style={[s.takeawayText, completed.includes(t) && s.strikethrough]}>{t}</Text>
-              </TouchableOpacity>
-            ))}
+            {takeaways.map((t, i) => {
+              const isDone = completed.includes(t.title)
+              const isOpen = expandedTakeaway === i
+              return (
+                <View key={i} style={[s.takeawayCard, isDone && s.takeawayCardDone]}>
+                  <TouchableOpacity
+                    style={s.takeawayHeader}
+                    onPress={() => setExpandedTakeaway(isOpen ? null : i)}
+                    activeOpacity={0.7}
+                  >
+                    <TouchableOpacity
+                      onPress={() => toggleTopic(t.title)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons
+                        name={isDone ? 'checkbox' : 'square-outline'}
+                        size={20}
+                        color={isDone ? colors.success : colors.muted}
+                      />
+                    </TouchableOpacity>
+                    <Text style={[s.takeawayTitle, isDone && s.strikethrough]} numberOfLines={isOpen ? undefined : 2}>
+                      {t.title}
+                    </Text>
+                    <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.muted} />
+                  </TouchableOpacity>
+                  {isOpen && (
+                    <View style={s.takeawayBody}>
+                      {!!t.explanation && (
+                        <Text style={s.takeawayExplain}>{t.explanation}</Text>
+                      )}
+                      {!!t.code && (
+                        <View style={s.takeawayCodeWrap}>
+                          <View style={s.takeawayCodeHeader}>
+                            <Text style={s.takeawayCodeLang}>{t.language || 'code'}</Text>
+                          </View>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <Text style={s.takeawayCode}>{t.code}</Text>
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )
+            })}
           </View>
         )
       case 'Code':
@@ -455,14 +534,22 @@ const s = StyleSheet.create({
   segTextActive:  { color: '#fff', fontWeight: '600' },
 
   // Takeaways
-  progressRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  progressBg:     { flex: 1, height: 6, backgroundColor: colors.card, borderRadius: 3, overflow: 'hidden' },
-  progressFill:   { height: '100%', backgroundColor: colors.success, borderRadius: 3 },
-  progressText:   { color: colors.muted, fontSize: 12, width: 36, textAlign: 'right' },
-  completedLabel: { color: colors.muted, fontSize: 11, marginBottom: 12 },
-  takeawayRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.card },
-  takeawayText:   { flex: 1, color: colors.text, fontSize: 14, lineHeight: 20 },
-  strikethrough:  { textDecorationLine: 'line-through', color: colors.muted },
+  progressRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  progressBg:        { flex: 1, height: 6, backgroundColor: colors.card, borderRadius: 3, overflow: 'hidden' },
+  progressFill:      { height: '100%', backgroundColor: colors.success, borderRadius: 3 },
+  progressText:      { color: colors.muted, fontSize: 12, width: 36, textAlign: 'right' },
+  completedLabel:    { color: colors.muted, fontSize: 11, marginBottom: 12 },
+  takeawayCard:      { backgroundColor: colors.card, borderRadius: 12, marginBottom: 10, overflow: 'hidden' },
+  takeawayCardDone:  { borderColor: colors.success, borderWidth: 1 },
+  takeawayHeader:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
+  takeawayTitle:     { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  takeawayBody:      { paddingHorizontal: 14, paddingBottom: 14 },
+  takeawayExplain:   { color: colors.muted, fontSize: 13, lineHeight: 20, marginBottom: 12 },
+  takeawayCodeWrap:  { backgroundColor: '#0D1117', borderRadius: 8, overflow: 'hidden' },
+  takeawayCodeHeader:{ backgroundColor: '#161B22', paddingHorizontal: 12, paddingVertical: 6 },
+  takeawayCodeLang:  { color: colors.muted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  takeawayCode:      { color: '#A8FF78', fontFamily: 'monospace', fontSize: 12, lineHeight: 18, padding: 12 },
+  strikethrough:     { textDecorationLine: 'line-through', color: colors.muted },
 
   // Code
   codeCard:       { backgroundColor: '#0D1117', borderRadius: 10, padding: 14 },
@@ -484,8 +571,14 @@ const s = StyleSheet.create({
   diffText:       { color: '#fff', fontSize: 10, fontWeight: '700' },
 
   // Next Reads
+  groupLabel:     { color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
   nextCard:       { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: colors.card, borderRadius: 10, marginBottom: 10 },
-  nextTitle:      { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  nextIconBox:    { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0, marginTop: 2 },
+  nextHeaderRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 2 },
+  nextTitle:      { color: colors.text, fontSize: 14, fontWeight: '600', flex: 1, lineHeight: 20 },
+  typePill:       { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start', flexShrink: 0 },
+  typePillText:   { color: '#fff', fontSize: 9, fontWeight: '700' },
+  nextMeta:       { color: colors.primary, fontSize: 12, marginBottom: 4 },
   nextReason:     { color: colors.muted, fontSize: 13, lineHeight: 18 },
 
   // Interview
