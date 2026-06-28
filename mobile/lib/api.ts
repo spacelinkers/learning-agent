@@ -150,8 +150,8 @@ export const api = {
 
   // Schedule import
   parsePlan:      (text: string)                => apiCall<SchedulePreview>('/api/schedule/parse', 'POST', { raw_text: text }),
-  savePlan:       (s: SchedulePreview, p: number) =>
-    apiCall('/api/schedule/save', 'POST', { approved_schedule: s, priority: p }),
+  savePlan:       (s: SchedulePreview, p: number, startDate?: string) =>
+    apiCall('/api/schedule/save', 'POST', { approved_schedule: s, priority: p, start_date: startDate }),
 
   // Paths
   getPaths:       ()                            => apiCall<LearningPath[]>('/api/paths'),

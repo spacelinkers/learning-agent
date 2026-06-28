@@ -98,7 +98,7 @@ async def save_schedule(
     schedule = body.approved_schedule
 
     total_days = sum(t.estimated_days for t in schedule.tracks)
-    start = date.today()
+    start = date.fromisoformat(body.start_date) if body.start_date else date.today()
     target = start + timedelta(days=total_days)
 
     # 1 — insert learning_path

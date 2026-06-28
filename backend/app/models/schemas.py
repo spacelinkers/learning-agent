@@ -27,6 +27,7 @@ class SaveScheduleRequest(BaseModel):
     approved_schedule: SchedulePreview
     priority: int = Field(default=3, ge=1, le=5)
     hours_per_day: float = Field(default=3.0, gt=0)
+    start_date: str | None = None   # ISO date "YYYY-MM-DD", defaults to today
 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
