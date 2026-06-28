@@ -305,13 +305,20 @@ def save_weekly_review(
 # ── Groq helper ───────────────────────────────────────────────────────────────
 
 def call_groq(prompt: str) -> dict:
+    import re
     client = Groq(api_key=os.environ["GROQ_API_KEY"])
     resp = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
-    return json.loads(resp.choices[0].message.content)
+    text = resp.choices[0].message.content.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text.strip())
+    match = re.search(r"[{\[]", text)
+    if match:
+        text = text[match.start():]
+    return json.loads(text)
 
 
 # ── Push notification ─────────────────────────────────────────────────────────

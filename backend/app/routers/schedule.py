@@ -38,6 +38,19 @@ def _groq_client() -> Groq:
     return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
+def _extract_json(text: str) -> str:
+    """Strip markdown code fences and extract the first JSON object/array."""
+    import re
+    # Remove ```json ... ``` or ``` ... ``` wrappers
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    text = re.sub(r"\s*```$", "", text.strip())
+    # If LLM still added preamble text, find the first { or [
+    match = re.search(r"[{\[]", text)
+    if match:
+        text = text[match.start():]
+    return text.strip()
+
+
 @router.post("/parse")
 async def parse_schedule(
     body: ParseRequest,
@@ -52,7 +65,7 @@ async def parse_schedule(
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
-        raw_json = response.choices[0].message.content
+        raw_json = _extract_json(response.choices[0].message.content)
         parsed = SchedulePreview.model_validate_json(raw_json)
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Parse failed: {exc}")
