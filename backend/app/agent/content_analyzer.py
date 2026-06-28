@@ -39,7 +39,7 @@ def fetch_content(state: ContentAnalyzerState) -> dict:
             headers={"User-Agent": "Mozilla/5.0 (learning-agent/1.0)"},
         )
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
             tag.decompose()
         text = soup.get_text(separator="\n", strip=True)

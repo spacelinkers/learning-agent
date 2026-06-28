@@ -95,11 +95,10 @@ async def ingest_pdf(
         raise HTTPException(status_code=413, detail="PDF must be under 20 MB.")
 
     def extract_text() -> str:
-        import fitz  # PyMuPDF — imported lazily so server starts without it locally
-        doc = fitz.open(stream=contents, filetype="pdf")
-        text = "\n".join(page.get_text() for page in doc)
-        doc.close()
-        return text
+        import io
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(contents))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
 
     raw_text = await asyncio.to_thread(extract_text)
     title = (file.filename or "document").removesuffix(".pdf").replace("_", " ").replace("-", " ")
