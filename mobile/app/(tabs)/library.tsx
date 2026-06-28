@@ -18,12 +18,12 @@ import { api, ContentSource } from '@/lib/api'
 
 const DIFF_COLOR: Record<string, string> = {
   easy:   colors.success,
-  medium: colors.warning,
+  medium: colors.amber,
   hard:   colors.danger,
 }
 const DIFF_BG: Record<string, string> = {
   easy:   colors.successMuted,
-  medium: colors.warningMuted,
+  medium: colors.amberMuted,
   hard:   colors.dangerMuted,
 }
 
@@ -110,77 +110,88 @@ export default function LibraryScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.card, isFailed && styles.cardFailed]}
+        style={[styles.card, isDone && styles.cardDone, isFailed && styles.cardFailed]}
         onPress={() => isDone && router.push(`/library/${item.id}`)}
         onLongPress={() => confirmDelete(item.id, item.title || '')}
         activeOpacity={isDone ? 0.75 : 1}
       >
-        <View style={styles.cardMeta}>
-          <View style={[
-            styles.typeBadge,
-            item.type === 'url'
-              ? { backgroundColor: colors.primaryMuted }
-              : { backgroundColor: 'rgba(139,92,246,0.15)' },
-          ]}>
-            <Ionicons
-              name={item.type === 'url' ? 'link-outline' : 'document-text-outline'}
-              size={11}
-              color={item.type === 'url' ? colors.primary : colors.rollover}
-            />
-            <Text style={[styles.typeBadgeText,
-              { color: item.type === 'url' ? colors.primary : colors.rollover }
-            ]}>
-              {item.type.toUpperCase()}
-            </Text>
-          </View>
+        {/* Cyan accent strip for done items */}
+        {isDone && <View style={styles.cardAccent} />}
 
-          {item.difficulty && (
-            <View style={[styles.diffBadge, { backgroundColor: DIFF_BG[item.difficulty] ?? colors.surface }]}>
-              <Text style={[styles.diffBadgeText, { color: DIFF_COLOR[item.difficulty] ?? colors.textSub }]}>
-                {item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1)}
+        <View style={styles.cardInner}>
+          <View style={styles.cardMeta}>
+            <View style={[
+              styles.typeBadge,
+              { backgroundColor: item.type === 'url' ? colors.cyanMuted : colors.violetMuted },
+            ]}>
+              <Ionicons
+                name={item.type === 'url' ? 'link-outline' : 'document-text-outline'}
+                size={11}
+                color={item.type === 'url' ? colors.cyan : colors.violet}
+              />
+              <Text style={[styles.typeBadgeText,
+                { color: item.type === 'url' ? colors.cyan : colors.violet }
+              ]}>
+                {item.type.toUpperCase()}
               </Text>
             </View>
+
+            {item.difficulty && (
+              <View style={[styles.diffBadge, { backgroundColor: DIFF_BG[item.difficulty] ?? colors.surface }]}>
+                <Text style={[styles.diffBadgeText, { color: DIFF_COLOR[item.difficulty] ?? colors.textSub }]}>
+                  {item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1)}
+                </Text>
+              </View>
+            )}
+
+            {!!item.reading_time_minutes && (
+              <View style={styles.timeBadge}>
+                <Ionicons name="time-outline" size={11} color={colors.textSub} />
+                <Text style={styles.timeBadgeText}>{item.reading_time_minutes} min</Text>
+              </View>
+            )}
+
+            <View style={{ flex: 1 }} />
+            {isAnalyzing && <ActivityIndicator size="small" color={colors.cyan} />}
+            {isDone      && <Ionicons name="chevron-forward" size={16} color={colors.cyan} />}
+            {isFailed    && <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />}
+          </View>
+
+          <Text style={[styles.cardTitle, isFailed && { color: colors.muted }]} numberOfLines={2}>
+            {item.title
+              || (isAnalyzing ? 'Analyzing content…' : item.url || item.filename || 'Untitled')}
+          </Text>
+
+          {isAnalyzing && (
+            <Text style={[styles.analyzingText, { color: colors.cyan }]}>
+              AI is reading this content…
+            </Text>
           )}
 
-          {!!item.reading_time_minutes && (
-            <View style={styles.timeBadge}>
-              <Ionicons name="time-outline" size={11} color={colors.textSub} />
-              <Text style={styles.timeBadgeText}>{item.reading_time_minutes} min</Text>
+          {item.prerequisites && item.prerequisites.length > 0 && (
+            <View style={styles.prereqRow}>
+              <Text style={styles.prereqLabel}>Needs: </Text>
+              <Text style={styles.prereqText}>{item.prerequisites.join(' · ')}</Text>
             </View>
           )}
 
-          <View style={{ flex: 1 }} />
-          {isAnalyzing && <ActivityIndicator size="small" color={colors.primary} />}
-          {isDone      && <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
-          {isFailed    && <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />}
+          {isFailed && (
+            <Text style={styles.errorText}>Analysis failed — try again with a different URL.</Text>
+          )}
         </View>
-
-        <Text style={[styles.cardTitle, isFailed && { color: colors.muted }]} numberOfLines={2}>
-          {item.title
-            || (isAnalyzing ? 'Analyzing content…' : item.url || item.filename || 'Untitled')}
-        </Text>
-
-        {isAnalyzing && (
-          <Text style={styles.analyzingText}>AI is reading this content…</Text>
-        )}
-
-        {item.prerequisites && item.prerequisites.length > 0 && (
-          <View style={styles.prereqRow}>
-            <Text style={styles.prereqLabel}>Needs: </Text>
-            <Text style={styles.prereqText}>{item.prerequisites.join(' · ')}</Text>
-          </View>
-        )}
-
-        {isFailed && (
-          <Text style={styles.errorText}>Analysis failed — try again with a different URL.</Text>
-        )}
       </TouchableOpacity>
     )
   }
 
   const header = (
     <View style={styles.headerSection}>
-      <Text style={styles.sectionLabel}>Add URL</Text>
+      {/* Section label with cyan accent */}
+      <View style={styles.sectionRow}>
+        <View style={[styles.sectionAccent, { backgroundColor: colors.cyan }]} />
+        <Text style={[styles.sectionLabel, { color: colors.cyan }]}>Add Content</Text>
+      </View>
+
+      {/* URL input */}
       <View style={styles.inputRow}>
         <View style={styles.inputWrap}>
           <Ionicons name="link-outline" size={15} color={colors.muted} style={{ marginRight: 6 }} />
@@ -207,14 +218,16 @@ export default function LibraryScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* PDF button */}
       <TouchableOpacity style={styles.pdfBtn} onPress={pickPdf} disabled={submitting}>
-        <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-        <Text style={styles.pdfBtnText}>Upload PDF</Text>
+        <Ionicons name="document-text-outline" size={16} color={colors.violet} />
+        <Text style={[styles.pdfBtnText, { color: colors.violet }]}>Upload PDF</Text>
       </TouchableOpacity>
 
       {sources.length > 0 && (
-        <View style={styles.libraryHeader}>
-          <Text style={styles.sectionLabel}>My Library</Text>
+        <View style={[styles.sectionRow, { marginTop: 20, marginBottom: 4 }]}>
+          <View style={[styles.sectionAccent, { backgroundColor: colors.cyan }]} />
+          <Text style={[styles.sectionLabel, { color: colors.cyan }]}>My Library</Text>
           <View style={styles.countChip}>
             <Text style={styles.countText}>{sources.length}</Text>
           </View>
@@ -227,7 +240,7 @@ export default function LibraryScreen() {
     <View style={styles.container}>
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.cyan} />
         </View>
       ) : (
         <FlatList
@@ -246,7 +259,7 @@ export default function LibraryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); loadSources() }}
-              tintColor={colors.primary}
+              tintColor={colors.cyan}
             />
           }
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -261,32 +274,36 @@ const styles = StyleSheet.create({
   center:          { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
 
   headerSection:   { padding: 16, paddingBottom: 8 },
-  sectionLabel:    { fontSize: 11, color: colors.muted, fontWeight: '700', textTransform: 'uppercase',
-                     letterSpacing: 0.8, marginBottom: 10 },
+  sectionRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sectionAccent:   { width: 3, height: 14, borderRadius: 2 },
+  sectionLabel:    { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
 
   inputRow:        { flexDirection: 'row', gap: 8, marginBottom: 10 },
   inputWrap:       { flex: 1, flexDirection: 'row', alignItems: 'center',
                      backgroundColor: colors.card, borderRadius: 12,
                      borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10 },
   urlInput:        { flex: 1, color: colors.text, paddingVertical: 11, fontSize: 14 },
-  analyzeBtn:      { backgroundColor: colors.primary, borderRadius: 12,
+  analyzeBtn:      { backgroundColor: colors.cyan, borderRadius: 12,
                      paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   analyzeBtnOff:   { opacity: 0.4 },
-  analyzeBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+  analyzeBtnText:  { color: colors.bg, fontWeight: '700', fontSize: 14 },
 
   pdfBtn:          { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-                     borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-                     paddingVertical: 9, paddingHorizontal: 14, marginBottom: 8 },
-  pdfBtnText:      { color: colors.primary, fontWeight: '600', fontSize: 14 },
+                     borderWidth: 1, borderColor: colors.violetMuted, borderRadius: 10,
+                     paddingVertical: 9, paddingHorizontal: 14, marginBottom: 8,
+                     backgroundColor: colors.violetMuted },
+  pdfBtnText:      { fontWeight: '600', fontSize: 14 },
 
-  libraryHeader:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 4 },
-  countChip:       { backgroundColor: colors.primaryMuted, width: 22, height: 22, borderRadius: 11,
-                     alignItems: 'center', justifyContent: 'center' },
-  countText:       { color: colors.primary, fontSize: 11, fontWeight: '700' },
+  countChip:       { backgroundColor: colors.cyanMuted, width: 22, height: 22, borderRadius: 11,
+                     alignItems: 'center', justifyContent: 'center', marginLeft: 'auto' },
+  countText:       { color: colors.cyan, fontSize: 11, fontWeight: '700' },
 
   card:            { backgroundColor: colors.card, borderRadius: 14, marginHorizontal: 16,
-                     marginBottom: 10, padding: 14, borderWidth: 1, borderColor: colors.border },
-  cardFailed:      { borderColor: colors.danger + '55' },
+                     marginBottom: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  cardDone:        { borderColor: colors.cyan + '44' },
+  cardFailed:      { borderColor: colors.danger + '44' },
+  cardAccent:      { height: 3, backgroundColor: colors.cyan },
+  cardInner:       { padding: 14 },
   cardMeta:        { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   typeBadge:       { flexDirection: 'row', alignItems: 'center', gap: 4,
                      paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
@@ -296,7 +313,7 @@ const styles = StyleSheet.create({
   timeBadge:       { flexDirection: 'row', alignItems: 'center', gap: 3 },
   timeBadgeText:   { fontSize: 11, color: colors.textSub },
   cardTitle:       { fontSize: 15, fontWeight: '600', color: colors.text, lineHeight: 21 },
-  analyzingText:   { fontSize: 12, color: colors.primary, marginTop: 6, fontStyle: 'italic' },
+  analyzingText:   { fontSize: 12, marginTop: 6, fontStyle: 'italic' },
   prereqRow:       { flexDirection: 'row', marginTop: 8 },
   prereqLabel:     { fontSize: 12, color: colors.muted, fontWeight: '600' },
   prereqText:      { fontSize: 12, color: colors.textSub, flex: 1 },

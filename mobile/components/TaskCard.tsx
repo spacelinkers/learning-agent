@@ -14,13 +14,14 @@ export function TaskCard({ item, onDone, onSkip }: Props) {
   const isMissed = item.status === 'missed'
   const isActive = !isDone && !isMissed
 
+  // Accent color tells the story at a glance
   const accentColor = item.is_rollover
-    ? colors.rollover
+    ? colors.rollover   // rose — attention needed
     : isDone
-      ? colors.success
+      ? colors.success  // emerald — completed
       : isMissed
-        ? colors.muted
-        : colors.primary
+        ? colors.muted  // grey — skipped
+        : colors.primary // indigo — active
 
   return (
     <View style={[styles.card, isDone && styles.cardDone, isMissed && styles.cardMissed]}>
@@ -57,13 +58,19 @@ export function TaskCard({ item, onDone, onSkip }: Props) {
             <Text style={styles.timeChipText}>{Math.round(item.estimated_hours * 60)} min</Text>
           </View>
           {(item.rollover_count ?? 0) > 0 && (
-            <Text style={styles.rolloverCount}>×{item.rollover_count} rolled over</Text>
+            <Text style={[styles.rolloverCount, { color: colors.rollover }]}>
+              ×{item.rollover_count} rolled over
+            </Text>
           )}
         </View>
 
         {isActive && (
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.doneBtn} onPress={onDone} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
+              onPress={onDone}
+              activeOpacity={0.8}
+            >
               <Text style={styles.doneBtnText}>✓  Mark Done</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.skipBtn} onPress={onSkip} activeOpacity={0.8}>
@@ -107,10 +114,9 @@ const styles = StyleSheet.create({
   metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   timeChip:      { backgroundColor: colors.surface, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   timeChipText:  { fontSize: 12, color: colors.textSub, fontWeight: '500' },
-  rolloverCount: { fontSize: 12, color: colors.rollover },
+  rolloverCount: { fontSize: 12 },
   actions:       { flexDirection: 'row', gap: 10 },
-  doneBtn:       { flex: 1, backgroundColor: colors.primary, borderRadius: 10,
-                   paddingVertical: 10, alignItems: 'center' },
+  doneBtn:       { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   doneBtnText:   { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
   skipBtn:       { paddingHorizontal: 18, paddingVertical: 10,
                    borderWidth: 1, borderColor: colors.borderLight, borderRadius: 10, alignItems: 'center' },

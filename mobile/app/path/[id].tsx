@@ -12,13 +12,20 @@ import { api, PathDetail, LearningTrack, LearningTask } from '@/lib/api'
 const STATUS_COLOR: Record<string, string> = {
   completed: colors.success,
   skipped:   colors.muted,
-  suggested: colors.primary,
-  active:    colors.primary,
+  suggested: colors.violet,
+  active:    colors.violet,
   pending:   colors.muted,
 }
 
+const PRIORITY_COLOR: Record<number, string> = {
+  1: colors.danger, 2: colors.warning, 3: colors.violet, 4: colors.teal, 5: colors.muted,
+}
 const PRIORITY_LABEL: Record<number, string> = {
   1: 'Critical', 2: 'High', 3: 'Normal', 4: 'Low', 5: 'Minimal',
+}
+const PRIORITY_BG: Record<number, string> = {
+  1: colors.dangerMuted, 2: colors.warningMuted, 3: colors.violetMuted,
+  4: colors.tealMuted, 5: 'rgba(91,111,138,0.13)',
 }
 
 function TaskRow({ task }: { task: LearningTask }) {
@@ -40,11 +47,7 @@ function TaskRow({ task }: { task: LearningTask }) {
             {task.title}
           </Text>
           {hasDescription && (
-            <Ionicons
-              name={expanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color={colors.muted}
-            />
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.muted} />
           )}
         </View>
         {expanded && hasDescription && (
@@ -55,7 +58,9 @@ function TaskRow({ task }: { task: LearningTask }) {
             <Text style={styles.taskTimeText}>{task.estimated_hours}h</Text>
           </View>
           {(task.rollover_count ?? 0) > 0 && (
-            <Text style={styles.taskRollover}>×{task.rollover_count} rollover</Text>
+            <Text style={[styles.taskRollover, { color: colors.rollover }]}>
+              ×{task.rollover_count} rollover
+            </Text>
           )}
           <View style={{ flex: 1 }} />
           <Text style={[styles.taskStatus, { color: statusColor }]}>
@@ -67,30 +72,40 @@ function TaskRow({ task }: { task: LearningTask }) {
   )
 }
 
-function TrackSection({ track }: { track: LearningTrack }) {
+function TrackSection({ track, index }: { track: LearningTrack; index: number }) {
   const tasks = track.learning_tasks ?? []
   const done  = tasks.filter(t => t.status === 'completed').length
   const total = tasks.length
   const pct   = total > 0 ? done / total : 0
 
+  // Cycle through accent colors for visual variety between tracks
+  const trackColors = [colors.violet, colors.teal, colors.cyan, colors.primary, colors.amber]
+  const accentColor = trackColors[index % trackColors.length]
+
   return (
     <View style={styles.trackBlock}>
-      <View style={styles.trackHeader}>
-        <View style={styles.trackInfo}>
-          <Text style={styles.trackTitle}>{track.title}</Text>
-          <Text style={styles.trackMeta}>{done}/{total} tasks · {track.estimated_days ?? '?'}d</Text>
-        </View>
-        <View style={styles.trackProgress}>
-          <View style={styles.trackProgressBg}>
-            <View style={[styles.trackProgressFill, { width: `${Math.round(pct * 100)}%` as any }]} />
+      <View style={[styles.trackAccent, { backgroundColor: accentColor }]} />
+      <View style={styles.trackContent}>
+        <View style={styles.trackHeader}>
+          <View style={styles.trackInfo}>
+            <Text style={styles.trackTitle}>{track.title}</Text>
+            <Text style={styles.trackMeta}>{done}/{total} tasks · {track.estimated_days ?? '?'}d</Text>
           </View>
-          <Text style={styles.trackPct}>{Math.round(pct * 100)}%</Text>
+          <View style={styles.trackProgress}>
+            <View style={styles.trackProgressBg}>
+              <View style={[
+                styles.trackProgressFill,
+                { width: `${Math.round(pct * 100)}%` as any, backgroundColor: accentColor },
+              ]} />
+            </View>
+            <Text style={[styles.trackPct, { color: accentColor }]}>{Math.round(pct * 100)}%</Text>
+          </View>
         </View>
+        {tasks.length === 0
+          ? <Text style={styles.noTasksText}>No tasks in this track.</Text>
+          : tasks.map(task => <TaskRow key={task.id} task={task} />)
+        }
       </View>
-      {tasks.length === 0
-        ? <Text style={styles.noTasksText}>No tasks in this track.</Text>
-        : tasks.map(task => <TaskRow key={task.id} task={task} />)
-      }
     </View>
   )
 }
@@ -110,7 +125,6 @@ export default function PathDetailScreen() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Intercept Android hardware/gesture back — always go to Paths tab
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       router.replace('/(tabs)/paths' as any)
@@ -120,14 +134,14 @@ export default function PathDetailScreen() {
   }, [router])
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.violet} /></View>
   }
   if (error || !path) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>{error ?? 'Path not found'}</Text>
         <TouchableOpacity onPress={() => router.replace('/(tabs)/paths' as any)} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Go back</Text>
+          <Text style={[styles.backBtnText, { color: colors.violet }]}>← Go back</Text>
         </TouchableOpacity>
       </View>
     )
@@ -138,14 +152,15 @@ export default function PathDetailScreen() {
   const doneTasks  = tracks.reduce(
     (n, t) => n + (t.learning_tasks ?? []).filter(tk => tk.status === 'completed').length, 0,
   )
-  const pct = totalTasks > 0 ? doneTasks / totalTasks : 0
+  const pct      = totalTasks > 0 ? doneTasks / totalTasks : 0
+  const priority = Math.min(Math.max(path.priority, 1), 5)
 
   return (
     <View style={styles.container}>
       <FlatList
         data={tracks}
         keyExtractor={t => t.id}
-        renderItem={({ item }) => <TrackSection track={item} />}
+        renderItem={({ item, index }) => <TrackSection track={item} index={index} />}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -153,38 +168,43 @@ export default function PathDetailScreen() {
               style={styles.backRow}
               onPress={() => router.replace('/(tabs)/paths' as any)}
             >
-              <Ionicons name="arrow-back" size={18} color={colors.primary} />
-              <Text style={styles.backLabel}>My Paths</Text>
+              <Ionicons name="arrow-back" size={18} color={colors.violet} />
+              <Text style={[styles.backLabel, { color: colors.violet }]}>My Paths</Text>
             </TouchableOpacity>
 
             <View style={styles.heroCard}>
-              <View style={styles.heroLeft}>
-                <View style={styles.heroChipRow}>
-                  <View style={styles.priorityChip}>
-                    <Text style={styles.priorityChipText}>
-                      P{path.priority} · {PRIORITY_LABEL[path.priority] ?? 'Normal'}
-                    </Text>
-                  </View>
-                  <View style={[
-                    styles.statusChip,
-                    path.status === 'paused'
-                      ? { backgroundColor: colors.warningMuted }
-                      : { backgroundColor: colors.primaryMuted },
-                  ]}>
-                    <Text style={[
-                      styles.statusChipText,
-                      { color: path.status === 'paused' ? colors.warning : colors.primary },
+              <View style={[styles.heroAccent, { backgroundColor: colors.violet }]} />
+              <View style={styles.heroInner}>
+                <View style={styles.heroLeft}>
+                  <View style={styles.heroChipRow}>
+                    <View style={[styles.priorityChip,
+                      { backgroundColor: PRIORITY_BG[priority], borderColor: PRIORITY_COLOR[priority] + '55' }
                     ]}>
-                      {path.status.charAt(0).toUpperCase() + path.status.slice(1)}
-                    </Text>
+                      <Text style={[styles.priorityChipText, { color: PRIORITY_COLOR[priority] }]}>
+                        P{priority} · {PRIORITY_LABEL[priority]}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusChip,
+                      path.status === 'paused'
+                        ? { backgroundColor: colors.warningMuted }
+                        : { backgroundColor: colors.violetMuted },
+                    ]}>
+                      <Text style={[
+                        styles.statusChipText,
+                        { color: path.status === 'paused' ? colors.warning : colors.violet },
+                      ]}>
+                        {path.status.charAt(0).toUpperCase() + path.status.slice(1)}
+                      </Text>
+                    </View>
                   </View>
+                  <Text style={styles.pathTitle}>{path.title}</Text>
+                  <Text style={styles.pathMeta}>
+                    {tracks.length} tracks · {totalTasks} tasks · {doneTasks} done
+                  </Text>
                 </View>
-                <Text style={styles.pathTitle}>{path.title}</Text>
-                <Text style={styles.pathMeta}>
-                  {tracks.length} tracks · {totalTasks} tasks · {doneTasks} done
-                </Text>
+                <ProgressRing progress={pct} size={64} color={colors.violet} strokeWidth={5} />
               </View>
-              <ProgressRing progress={pct} size={64} color={colors.primary} strokeWidth={5} />
             </View>
           </View>
         }
@@ -204,36 +224,39 @@ const styles = StyleSheet.create({
   center:            { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   errorText:         { color: colors.danger, marginBottom: 16, textAlign: 'center' },
   backBtn:           { padding: 12 },
-  backBtnText:       { color: colors.primary, fontSize: 15 },
+  backBtnText:       { fontSize: 15 },
 
   list:              { paddingHorizontal: 16, paddingBottom: 40 },
 
   header:            { marginBottom: 8 },
   backRow:           { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12 },
-  backLabel:         { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  backLabel:         { fontSize: 14, fontWeight: '600' },
 
-  heroCard:          { backgroundColor: colors.card, borderRadius: 16, padding: 16,
-                       flexDirection: 'row', alignItems: 'center', gap: 12,
-                       borderWidth: 1, borderColor: colors.border, marginBottom: 20 },
+  heroCard:          { backgroundColor: colors.card, borderRadius: 16,
+                       borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: 'hidden' },
+  heroAccent:        { height: 3 },
+  heroInner:         { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   heroLeft:          { flex: 1 },
   heroChipRow:       { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  priorityChip:      { backgroundColor: colors.primaryMuted, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  priorityChipText:  { color: colors.primary, fontSize: 11, fontWeight: '700' },
+  priorityChip:      { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  priorityChipText:  { fontSize: 11, fontWeight: '700' },
   statusChip:        { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   statusChipText:    { fontSize: 11, fontWeight: '700' },
   pathTitle:         { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 4, lineHeight: 24 },
   pathMeta:          { fontSize: 12, color: colors.textSub },
 
-  trackBlock:        { marginBottom: 20 },
+  trackBlock:        { flexDirection: 'row', marginBottom: 20 },
+  trackAccent:       { width: 3, borderRadius: 2, marginRight: 10, marginTop: 2, flexShrink: 0 },
+  trackContent:      { flex: 1 },
   trackHeader:       { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   trackInfo:         { flex: 1 },
   trackTitle:        { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 2 },
   trackMeta:         { fontSize: 12, color: colors.textSub },
   trackProgress:     { alignItems: 'flex-end', gap: 3, minWidth: 56 },
   trackProgressBg:   { height: 3, width: 56, backgroundColor: colors.surface, borderRadius: 2 },
-  trackProgressFill: { height: 3, backgroundColor: colors.primary, borderRadius: 2 },
-  trackPct:          { fontSize: 10, color: colors.muted, fontWeight: '600' },
-  noTasksText:       { color: colors.muted, fontSize: 12, paddingLeft: 18 },
+  trackProgressFill: { height: 3, borderRadius: 2 },
+  trackPct:          { fontSize: 10, fontWeight: '600' },
+  noTasksText:       { color: colors.muted, fontSize: 12, paddingLeft: 4 },
 
   taskRow:           { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10,
                        paddingHorizontal: 12, backgroundColor: colors.card,
@@ -248,7 +271,7 @@ const styles = StyleSheet.create({
   taskMeta:          { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 6 },
   taskTimeChip:      { backgroundColor: colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   taskTimeText:      { fontSize: 11, color: colors.textSub, fontWeight: '500' },
-  taskRollover:      { fontSize: 11, color: colors.rollover },
+  taskRollover:      { fontSize: 11 },
   taskStatus:        { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
 
   emptyText:         { color: colors.textSub, textAlign: 'center', fontSize: 15, marginBottom: 8 },

@@ -93,74 +93,78 @@ export default function LogScreen() {
         />
 
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Quick Log</Text>
+          {/* Amber section accent */}
+          <View style={styles.cardAccent} />
+          <View style={styles.cardBody}>
+            <Text style={styles.formTitle}>Quick Log</Text>
 
-          {/* Task selector */}
-          <Text style={styles.label}>Task (optional)</Text>
-          <View style={styles.taskList}>
-            <TouchableOpacity
-              style={[styles.taskOption, !selectedItem && styles.taskOptionActive]}
-              onPress={() => setSelectedItem(null)}
-            >
-              <Text style={[styles.taskOptionText, !selectedItem && styles.taskOptionTextActive]}>
-                General / no task
-              </Text>
-            </TouchableOpacity>
-            {pendingItems.map(item => (
+            {/* Task selector */}
+            <Text style={styles.label}>Task (optional)</Text>
+            <View style={styles.taskList}>
               <TouchableOpacity
-                key={item.item_id}
-                style={[styles.taskOption, selectedItem?.item_id === item.item_id && styles.taskOptionActive]}
-                onPress={() => setSelectedItem(item)}
+                style={[styles.taskOption, !selectedItem && styles.taskOptionActive]}
+                onPress={() => setSelectedItem(null)}
               >
-                <Text style={[styles.taskOptionText, selectedItem?.item_id === item.item_id && styles.taskOptionTextActive]}>
-                  {item.title}
+                <Text style={[styles.taskOptionText, !selectedItem && styles.taskOptionTextActive]}>
+                  General / no task
                 </Text>
-                <Text style={styles.taskPath}>{item.path_title}</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+              {pendingItems.map(item => (
+                <TouchableOpacity
+                  key={item.item_id}
+                  style={[styles.taskOption, selectedItem?.item_id === item.item_id && styles.taskOptionActive]}
+                  onPress={() => setSelectedItem(item)}
+                >
+                  <Text style={[styles.taskOptionText, selectedItem?.item_id === item.item_id && styles.taskOptionTextActive]}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.taskPath}>{item.path_title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          {/* Time */}
-          <Text style={styles.label}>Time spent</Text>
-          <View style={styles.timeRow}>
+            {/* Time */}
+            <Text style={styles.label}>Time spent</Text>
+            <View style={styles.timeRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                value={minutes}
+                onChangeText={setMinutes}
+                placeholder="0"
+                placeholderTextColor={colors.muted}
+                keyboardType="number-pad"
+              />
+              <Text style={styles.timeUnit}>minutes</Text>
+            </View>
+
+            {/* Mood */}
+            <Text style={styles.label}>How did it feel?</Text>
+            <MoodPicker value={mood} onChange={setMood} />
+
+            {/* Notes */}
+            <Text style={styles.label}>Notes (optional)</Text>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
-              value={minutes}
-              onChangeText={setMinutes}
-              placeholder="0"
+              style={[styles.input, styles.notesInput]}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="What did you learn? Any blockers?"
               placeholderTextColor={colors.muted}
-              keyboardType="number-pad"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
             />
-            <Text style={styles.timeUnit}>minutes</Text>
+
+            <TouchableOpacity
+              style={[styles.logBtn, saving && styles.logBtnOff]}
+              onPress={handleLog}
+              disabled={saving}
+            >
+              {saving
+                ? <ActivityIndicator color={colors.bg} />
+                : <Text style={styles.logBtnText}>Log Progress</Text>
+              }
+            </TouchableOpacity>
           </View>
-
-          {/* Mood */}
-          <Text style={styles.label}>How did it feel?</Text>
-          <MoodPicker value={mood} onChange={setMood} />
-
-          {/* Notes */}
-          <Text style={styles.label}>Notes (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="What did you learn? Any blockers?"
-            placeholderTextColor={colors.muted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-
-          <TouchableOpacity
-            style={[styles.logBtn, saving && styles.logBtnOff]}
-            onPress={handleLog}
-            disabled={saving}
-          >
-            {saving
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.logBtnText}>Log Progress</Text>
-            }
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -171,8 +175,10 @@ const styles = StyleSheet.create({
   root:                 { flex: 1, backgroundColor: colors.bg },
   scroll:               { padding: 16, paddingBottom: 40 },
 
-  formCard:             { backgroundColor: colors.card, borderRadius: 16, padding: 20,
-                          borderWidth: 1, borderColor: colors.border },
+  formCard:             { backgroundColor: colors.card, borderRadius: 16,
+                          borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  cardAccent:           { height: 3, backgroundColor: colors.amber },
+  cardBody:             { padding: 20 },
   formTitle:            { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 20 },
 
   label:                { fontSize: 11, color: colors.muted, fontWeight: '700',
@@ -181,7 +187,7 @@ const styles = StyleSheet.create({
   taskList:             { gap: 8, marginBottom: 20 },
   taskOption:           { backgroundColor: colors.surface, borderRadius: 10, padding: 12,
                           borderWidth: 1, borderColor: colors.border },
-  taskOptionActive:     { borderColor: colors.primary, backgroundColor: colors.primaryMuted },
+  taskOptionActive:     { borderColor: colors.amber, backgroundColor: colors.amberMuted },
   taskOptionText:       { color: colors.textSub, fontSize: 14 },
   taskOptionTextActive: { color: colors.text, fontWeight: '600' },
   taskPath:             { fontSize: 11, color: colors.muted, marginTop: 2 },
@@ -194,8 +200,8 @@ const styles = StyleSheet.create({
                           borderWidth: 1, borderColor: colors.border },
   notesInput:           { minHeight: 88, marginBottom: 20 },
 
-  logBtn:               { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16,
+  logBtn:               { backgroundColor: colors.amber, borderRadius: 12, paddingVertical: 16,
                           alignItems: 'center', marginTop: 4 },
   logBtnOff:            { opacity: 0.5 },
-  logBtnText:           { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.3 },
+  logBtnText:           { color: colors.bg, fontWeight: '800', fontSize: 16, letterSpacing: 0.3 },
 })

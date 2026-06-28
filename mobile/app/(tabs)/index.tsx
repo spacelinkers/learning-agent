@@ -22,6 +22,14 @@ export default function TodayScreen() {
 
   const now     = new Date()
   const dateStr = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`
+  const allDone = done === total && total > 0
+
+  // Ring color shifts as you progress: red → amber → green
+  const ringColor = pct < 0.4
+    ? colors.warning
+    : pct < 0.8
+      ? colors.teal
+      : colors.success
 
   if (loading && !plan) {
     return (
@@ -40,8 +48,6 @@ export default function TodayScreen() {
     )
   }
 
-  const allDone = done === total && total > 0
-
   return (
     <View style={styles.container}>
       <FlatList
@@ -50,28 +56,34 @@ export default function TodayScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View>
+            {/* Hero card — indigo section */}
             <View style={styles.heroCard}>
-              <View style={styles.heroLeft}>
-                <Text style={styles.dateText}>{dateStr}</Text>
-                <Text style={styles.heroTitle}>
-                  {allDone ? 'All done today! 🎉' : `${total - done} task${total - done !== 1 ? 's' : ''} left`}
-                </Text>
-                <Text style={styles.heroSub}>{done} of {total} completed</Text>
-                {!!plan?.hours_budget && (
-                  <View style={styles.budgetChip}>
-                    <Text style={styles.budgetText}>{plan.hours_budget}h budget</Text>
-                  </View>
-                )}
+              <View style={[styles.heroAccent, { backgroundColor: colors.primary }]} />
+              <View style={styles.heroInner}>
+                <View style={styles.heroLeft}>
+                  <Text style={styles.dateText}>{dateStr}</Text>
+                  <Text style={styles.heroTitle}>
+                    {allDone ? 'All done today! 🎉' : `${total - done} task${total - done !== 1 ? 's' : ''} left`}
+                  </Text>
+                  <Text style={styles.heroSub}>{done} of {total} completed</Text>
+                  {!!plan?.hours_budget && (
+                    <View style={styles.budgetChip}>
+                      <Text style={styles.budgetText}>{plan.hours_budget}h budget</Text>
+                    </View>
+                  )}
+                </View>
+                <ProgressRing
+                  progress={pct}
+                  size={72}
+                  strokeWidth={6}
+                  color={allDone ? colors.success : ringColor}
+                />
               </View>
-              <ProgressRing
-                progress={pct}
-                size={72}
-                strokeWidth={6}
-                color={allDone ? colors.success : colors.primary}
-              />
             </View>
 
-            {total > 0 && <Text style={styles.sectionLabel}>Today's Tasks</Text>}
+            {total > 0 && (
+              <Text style={styles.sectionLabel}>Today's Tasks</Text>
+            )}
           </View>
         }
         renderItem={({ item }) => (
@@ -100,9 +112,10 @@ const styles = StyleSheet.create({
   errorText:   { color: colors.danger, textAlign: 'center' },
   list:        { padding: 16, paddingBottom: 32 },
 
-  heroCard:    { backgroundColor: colors.card, borderRadius: 16, padding: 20,
-                 flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                 marginBottom: 24, borderWidth: 1, borderColor: colors.border },
+  heroCard:    { backgroundColor: colors.card, borderRadius: 16, marginBottom: 24,
+                 borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  heroAccent:  { height: 3 },
+  heroInner:   { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroLeft:    { flex: 1, paddingRight: 12 },
   dateText:    { fontSize: 12, color: colors.textSub, fontWeight: '500', marginBottom: 6, letterSpacing: 0.3 },
   heroTitle:   { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 2, lineHeight: 26 },
@@ -111,7 +124,7 @@ const styles = StyleSheet.create({
                  paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   budgetText:  { color: colors.primary, fontSize: 12, fontWeight: '600' },
 
-  sectionLabel:{ fontSize: 11, color: colors.muted, fontWeight: '700', textTransform: 'uppercase',
+  sectionLabel:{ fontSize: 11, color: colors.primary, fontWeight: '700', textTransform: 'uppercase',
                  letterSpacing: 0.8, marginBottom: 12 },
   emptyBox:    { alignItems: 'center', paddingVertical: 40 },
   emptyTitle:  { fontSize: 16, fontWeight: '700', color: colors.textSub, marginBottom: 6 },
