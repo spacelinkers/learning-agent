@@ -1,5 +1,8 @@
 import json
+import math
 import os
+import time
+from collections import defaultdict
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +13,29 @@ from app.deps import get_user_id
 from app.models.schemas import ParseRequest, SaveScheduleRequest, SchedulePreview
 
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
+
+# ── Rate limiter: 5 parse calls per user per hour (Groq free-tier guard) ──────
+_PARSE_LIMIT  = 5
+_PARSE_WINDOW = 3600  # seconds
+_parse_log: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(user_id: str) -> None:
+    now  = time.monotonic()
+    log  = _parse_log[user_id]
+    # Drop timestamps outside the rolling window
+    _parse_log[user_id] = [t for t in log if now - t < _PARSE_WINDOW]
+    remaining = _PARSE_LIMIT - len(_parse_log[user_id])
+    if remaining <= 0:
+        oldest     = _parse_log[user_id][0]
+        retry_secs = int(_PARSE_WINDOW - (now - oldest)) + 1
+        retry_min  = math.ceil(retry_secs / 60)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit reached: max {_PARSE_LIMIT} parses per hour. "
+                   f"Try again in {retry_min} minute{'s' if retry_min != 1 else ''}.",
+        )
+    _parse_log[user_id].append(now)
 
 PARSE_PROMPT = """
 Extract a structured learning schedule from this text. Preserve ALL detail — every bullet point, resource, book, link, and tip must appear somewhere in the output. Do not summarise or drop any information.
@@ -72,6 +98,7 @@ async def parse_schedule(
     user_id: str = Depends(get_user_id),
 ):
     """Call Groq to extract a structured schedule from pasted chat text."""
+    _check_rate_limit(user_id)
     prompt = PARSE_PROMPT.format(raw_text=body.raw_text)
     try:
         client = _groq_client()
